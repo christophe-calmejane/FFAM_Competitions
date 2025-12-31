@@ -1,0 +1,1364 @@
+/* ============================================
+   CSS Variables & Theme System
+   ============================================ */
+
+:root {
+  /* Colors - Light Theme */
+  --color-primary: #1a73e8;
+  --color-primary-dark: #1557b0;
+  --color-primary-light: #4285f4;
+  
+  --color-success: #34a853;
+  --color-success-dark: #2d8e47;
+  
+  --color-warning: #fbbc04;
+  --color-warning-dark: #f9a825;
+  
+  --color-danger: #ea4335;
+  --color-danger-dark: #c62828;
+  
+  --color-secondary: #5f6368;
+  --color-secondary-light: #80868b;
+  
+  /* Backgrounds */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #e8eaed;
+  --bg-card: #ffffff;
+  
+  /* Text */
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-tertiary: #80868b;
+  --text-inverse: #ffffff;
+  
+  /* Borders */
+  --border-color: #dadce0;
+  --border-radius: 8px;
+  --border-radius-lg: 16px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.2);
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 20px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 32px;
+  --font-size-3xl: 48px;
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+  --color-primary: #4285f4;
+  --color-primary-dark: #1a73e8;
+  --color-primary-light: #8ab4f8;
+  
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-tertiary: #0f3460;
+  --bg-card: #1f2937;
+  
+  --text-primary: #e8eaed;
+  --text-secondary: #9aa0a6;
+  --text-tertiary: #80868b;
+  
+  --border-color: #3c4043;
+  
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   Reset & Base Styles
+   ============================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+.hidden {
+  display: none !important;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  font-family: inherit;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* Button sizes */
+.btn-small {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-sm);
+}
+
+.btn-medium {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-md);
+}
+
+.btn-large {
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-lg);
+}
+
+/* Button variants */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--text-inverse);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.btn-secondary {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background-color: var(--border-color);
+}
+
+.btn-success {
+  background-color: var(--color-success);
+  color: var(--text-inverse);
+}
+
+.btn-success:hover {
+  background-color: var(--color-success-dark);
+}
+
+.btn-warning {
+  background-color: var(--color-warning);
+  color: var(--text-primary);
+}
+
+.btn-warning:hover {
+  background-color: var(--color-warning-dark);
+}
+
+.btn-danger {
+  background-color: var(--color-danger);
+  color: var(--text-inverse);
+}
+
+.btn-danger:hover {
+  background-color: var(--color-danger-dark);
+}
+
+.btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-icon-only {
+  padding: var(--spacing-sm);
+  aspect-ratio: 1;
+}
+
+/* ============================================
+   Form Elements
+   ============================================ */
+
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.form-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-md);
+  font-family: inherit;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  transition: border-color var(--transition-fast);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2);
+}
+
+.form-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.error-container {
+  padding: var(--spacing-md);
+  background-color: rgba(234, 67, 53, 0.1);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--border-radius);
+  color: var(--color-danger);
+  margin-top: var(--spacing-md);
+}
+
+/* ============================================
+   Page Layout
+   ============================================ */
+
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+}
+
+.page-title {
+  flex: 1;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================
+   Home Page
+   ============================================ */
+
+.page-home {
+  padding: var(--spacing-lg);
+}
+
+.home-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.app-title {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.settings-row {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-xl);
+  flex-wrap: wrap;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.setting-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.lang-buttons,
+.theme-buttons {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.welcome-section {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.welcome-title {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--spacing-sm);
+}
+
+.welcome-text {
+  color: var(--text-secondary);
+}
+
+.competition-selection {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.competition-card {
+  position: relative;
+  padding: var(--spacing-lg);
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  overflow: hidden;
+}
+
+.competition-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.competition-91min {
+  border-left: 4px solid var(--color-primary);
+}
+
+.competition-3h {
+  border-left: 4px solid var(--color-success);
+}
+
+.competition-duration {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--bg-tertiary);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.competition-title {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--spacing-sm);
+  padding-right: 60px;
+}
+
+.competition-description {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.competition-arrow {
+  position: absolute;
+  bottom: var(--spacing-md);
+  right: var(--spacing-md);
+  font-size: var(--font-size-xl);
+  color: var(--color-primary);
+}
+
+/* ============================================
+   Competition Page
+   ============================================ */
+
+.competition-content {
+  padding: var(--spacing-lg);
+}
+
+.new-team-btn {
+  width: 100%;
+  margin-bottom: var(--spacing-xl);
+}
+
+.teams-section {
+  margin-top: var(--spacing-lg);
+}
+
+.section-title {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--spacing-md);
+  color: var(--text-primary);
+}
+
+.teams-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.team-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.team-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.team-name {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+}
+
+.team-pilots {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.team-status {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-xs);
+  margin-top: var(--spacing-xs);
+}
+
+.status-active {
+  background-color: rgba(52, 168, 83, 0.2);
+  color: var(--color-success);
+}
+
+.status-ended {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.team-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+/* ============================================
+   Team Setup Page
+   ============================================ */
+
+.team-form {
+  padding: var(--spacing-lg);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.pilots-section {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius);
+}
+
+.pilots-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.pilots-header h3 {
+  font-size: var(--font-size-md);
+}
+
+.pilots-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.pilot-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background-color: var(--bg-primary);
+  border-radius: var(--border-radius);
+}
+
+.pilot-number {
+  font-weight: 600;
+  color: var(--text-secondary);
+  width: 30px;
+}
+
+.pilot-name-input {
+  flex: 1;
+}
+
+.female-checkbox {
+  padding: var(--spacing-xs);
+}
+
+/* ============================================
+   Active Competition Page
+   ============================================ */
+
+.competition-timer-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border-bottom: 2px solid var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.timer-bar-team {
+  flex: 1;
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.competition-timer-container {
+  flex-shrink: 0;
+}
+
+.active-competition-content {
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* Current Flight Section */
+.current-flight-section {
+  text-align: center;
+}
+
+.flight-timer-container {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.target-info {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-top: var(--spacing-sm);
+}
+
+/* Timer Display */
+.timer-display {
+  padding: var(--spacing-md);
+  background-color: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.timer-small {
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.timer-large {
+  padding: var(--spacing-lg);
+}
+
+.timer-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.timer-values {
+  display: flex;
+  gap: var(--spacing-lg);
+  justify-content: center;
+}
+
+.timer-elapsed,
+.timer-remaining {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.timer-value-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.timer-value {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-weight: 600;
+}
+
+.timer-small .timer-value {
+  font-size: var(--font-size-md);
+}
+
+.timer-large .timer-value {
+  font-size: var(--font-size-3xl);
+}
+
+.timer-warning {
+  color: var(--color-warning);
+}
+
+.timer-critical {
+  color: var(--color-danger);
+  animation: pulse 1s infinite;
+}
+
+/* Disable all timer animations in battery saver mode */
+.battery-saver .timer-critical {
+  animation: none;
+}
+
+.timer-exceeded {
+  color: #f97316; /* orange-500 */
+}
+
+.timer-exceeded .timer-value {
+  color: #f97316 !important;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.timer-flight {
+  border: 3px solid var(--color-primary);
+}
+
+.timer-running .timer-value {
+  color: var(--color-primary);
+}
+
+/* Safety Timer */
+.safety-timer {
+  text-align: center;
+  padding: var(--spacing-lg);
+  background-color: rgba(251, 188, 4, 0.1);
+  border: 2px solid var(--color-warning);
+  border-radius: var(--border-radius-lg);
+}
+
+.safety-label {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-warning-dark);
+}
+
+.safety-time {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-warning-dark);
+}
+
+/* Relay Timer */
+.relay-timer {
+  text-align: center;
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.relay-timer.relay-ok {
+  background-color: rgba(52, 168, 83, 0.1);
+  border: 2px solid var(--color-success);
+}
+
+.relay-timer.relay-penalty {
+  background-color: rgba(234, 67, 53, 0.1);
+  border: 2px solid var(--color-danger);
+}
+
+.relay-label {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+}
+
+.relay-ok .relay-label {
+  color: var(--color-success-dark);
+}
+
+.relay-penalty .relay-label {
+  color: var(--color-danger-dark);
+}
+
+.relay-time {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+}
+
+.relay-ok .relay-time {
+  color: var(--color-success-dark);
+}
+
+.relay-penalty .relay-time {
+  color: var(--color-danger-dark);
+}
+
+.relay-max {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-top: var(--spacing-xs);
+}
+
+.waiting-message {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  padding: var(--spacing-xl);
+}
+
+/* Pilots Grid */
+.pilots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing-md);
+}
+
+.pilot-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md);
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 80px;
+}
+
+.pilot-button:hover:not(.pilot-disabled) {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.pilot-button.pilot-flying {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--text-inverse);
+  animation: pulse-border 2s infinite;
+}
+
+/* Disable animation in battery saver mode */
+.battery-saver .pilot-button.pilot-flying {
+  animation: none;
+}
+
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(26, 115, 232, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(26, 115, 232, 0); }
+}
+
+.pilot-button.pilot-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pilot-button.pilot-female {
+  border-left: 4px solid #e91e63;
+}
+
+.pilot-female-icon {
+  position: absolute;
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
+  color: #e91e63;
+}
+
+.pilot-name {
+  font-weight: 600;
+  text-align: center;
+}
+
+.pilot-status {
+  font-size: var(--font-size-xl);
+}
+
+/* Score Section */
+.score-section {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  justify-content: center;
+}
+
+.score-display {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--bg-card);
+  border-radius: var(--border-radius);
+}
+
+.score-positive {
+  color: var(--color-danger);
+}
+
+.score-negative {
+  color: var(--color-success);
+}
+
+/* Flights Section */
+.flights-section {
+  border-top: 1px solid var(--border-color);
+  padding-top: var(--spacing-lg);
+}
+
+.flight-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.flight-list-empty {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: var(--spacing-xl);
+}
+
+.flight-item {
+  padding: var(--spacing-md);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+}
+
+.flight-item.flight-in-progress {
+  border-color: var(--color-primary);
+  border-width: 2px;
+}
+
+.flight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.flight-number {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.flight-pilot {
+  font-weight: 600;
+}
+
+.flight-duration {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-weight: 600;
+  font-size: var(--font-size-lg);
+}
+
+.flight-auto-penalties {
+  margin: var(--spacing-sm) 0;
+  padding: var(--spacing-sm);
+  background-color: rgba(234, 67, 53, 0.1);
+  border-radius: var(--border-radius);
+}
+
+.penalty-auto {
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+  padding: var(--spacing-xs) 0;
+}
+
+.flight-table-section {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  align-items: center;
+  margin: var(--spacing-sm) 0;
+  padding: var(--spacing-sm);
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius);
+}
+
+.table-points {
+  font-weight: 600;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius);
+}
+
+.table-points.bonus {
+  background-color: rgba(52, 168, 83, 0.2);
+  color: var(--color-success);
+}
+
+.table-points.penalty {
+  background-color: rgba(234, 67, 53, 0.1);
+  color: var(--color-danger);
+}
+
+.flight-manual-section {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px dashed var(--border-color);
+}
+
+.manual-penalties-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.penalty-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.applied-penalties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+.penalty-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: rgba(234, 67, 53, 0.1);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+}
+
+.penalty-remove-btn {
+  padding: 2px 6px !important;
+  font-size: var(--font-size-xs) !important;
+}
+
+.manual-total {
+  font-weight: 600;
+  color: var(--color-danger);
+  margin-left: auto;
+}
+
+/* ============================================
+   Results Page
+   ============================================ */
+
+.results-content {
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.result-card {
+  padding: var(--spacing-lg);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+}
+
+.result-team-name {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--spacing-sm);
+}
+
+.result-model {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.result-pilots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.pilot-tag {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--bg-tertiary);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+}
+
+.pilot-tag.pilot-female {
+  background-color: rgba(233, 30, 99, 0.1);
+  border-left: 3px solid #e91e63;
+}
+
+.pilot-tag.warning {
+  background-color: rgba(234, 67, 53, 0.1);
+  color: var(--color-danger);
+}
+
+.result-duration {
+  margin-top: var(--spacing-md);
+  color: var(--text-secondary);
+}
+
+.score-card {
+  text-align: center;
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
+}
+
+.score-title {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+.score-value {
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+}
+
+.breakdown-title {
+  margin-bottom: var(--spacing-md);
+}
+
+.breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+}
+
+.breakdown-penalty {
+  background-color: rgba(234, 67, 53, 0.1);
+}
+
+.breakdown-bonus {
+  background-color: rgba(52, 168, 83, 0.1);
+}
+
+.breakdown-label {
+  color: var(--text-secondary);
+}
+
+.breakdown-value {
+  font-weight: 600;
+}
+
+.breakdown-penalty .breakdown-value {
+  color: var(--color-danger);
+}
+
+.breakdown-bonus .breakdown-value {
+  color: var(--color-success);
+}
+
+.flights-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.flight-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.flight-penalties {
+  color: var(--color-danger);
+}
+
+.warning-card {
+  border-color: var(--color-danger);
+}
+
+.never-flew-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+/* ============================================
+   Settings Page
+   ============================================ */
+
+.settings-form {
+  padding: var(--spacing-lg);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.settings-section {
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius);
+}
+
+.settings-section .section-title {
+  font-size: var(--font-size-md);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+
+@media (max-width: 480px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .page-title {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .settings-row {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  
+  .competition-selection {
+    grid-template-columns: 1fr;
+  }
+  
+  .timer-values {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .timer-large .timer-value {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .pilots-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Touch-friendly sizing */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .pilot-button {
+    min-height: 60px;
+  }
+}
+
+/* ============================================
+   MODAL
+   ============================================ */
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  padding: var(--spacing-md);
+}
+
+.modal-backdrop.modal-visible {
+  opacity: 1;
+}
+
+.modal {
+  background-color: var(--bg-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 100%;
+  transform: scale(0.9);
+  transition: transform 0.2s ease;
+}
+
+.modal-visible .modal {
+  transform: scale(1);
+}
+
+.modal-header {
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.modal-danger .modal-title {
+  color: var(--color-danger);
+}
+
+.modal-warning .modal-title {
+  color: var(--color-warning-dark);
+}
+
+.modal-body {
+  padding: var(--spacing-lg);
+}
+
+.modal-message {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.modal-footer {
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+}
+
+.modal-footer .btn {
+  min-width: 100px;
+}
+
+@media (max-width: 480px) {
+  .modal-footer {
+    flex-direction: column-reverse;
+  }
+  
+  .modal-footer .btn {
+    width: 100%;
+  }
+}
