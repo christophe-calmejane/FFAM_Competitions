@@ -300,6 +300,7 @@ export async function renderCompetitionActivePage(
       onRemovePenalty: (flightId, penaltyIndex) => handleRemovePenalty(container, competitionType, flightId, penaltyIndex),
       onTableAnnouncedChange: (flightId, announced) => handleTableAnnouncedChange(container, competitionType, flightId, announced),
       onTableSuccessChange: (flightId, success) => handleTableSuccessChange(container, competitionType, flightId, success),
+      onEditFlight: (flightId, newDurationMs) => handleEditFlight(container, competitionType, flightId, newDurationMs),
     }
   );
   flightsSection.appendChild(flightList);
@@ -464,6 +465,25 @@ async function handleTableSuccessChange(
   if (!flight) return;
 
   flight.tableSuccess = success;
+
+  await saveCompetition(currentCompetition);
+  renderCompetitionActivePage(container, competitionType, currentTeam.id, currentCompetition.id);
+}
+
+async function handleEditFlight(
+  container: HTMLElement,
+  competitionType: CompetitionType,
+  flightId: string,
+  newDurationMs: number
+): Promise<void> {
+  if (!currentCompetition || !currentTeam) return;
+
+  const flight = currentCompetition.flights.find(f => f.id === flightId);
+  if (!flight || flight.endTimestamp === null) return;
+
+  // Update the flight duration by adjusting the endTimestamp
+  flight.endTimestamp = flight.startTimestamp + newDurationMs;
+  flight.duration = newDurationMs;
 
   await saveCompetition(currentCompetition);
   renderCompetitionActivePage(container, competitionType, currentTeam.id, currentCompetition.id);

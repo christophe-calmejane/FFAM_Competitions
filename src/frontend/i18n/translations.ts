@@ -85,6 +85,10 @@ export interface Translations {
   
   // UI
   batterySaver: string;
+  editFlight: string;
+  editFlightDuration: string;
+  durationMinutes: string;
+  durationSeconds: string;
   
   // Results
   results: string;
@@ -205,6 +209,10 @@ export const translations: Record<Language, Translations> = {
     
     // UI
     batterySaver: 'Battery Saver',
+    editFlight: 'Edit Flight',
+    editFlightDuration: 'Flight Duration',
+    durationMinutes: 'Minutes',
+    durationSeconds: 'Seconds',
     
     // Results
     results: 'Results',
@@ -324,6 +332,10 @@ export const translations: Record<Language, Translations> = {
     
     // UI
     batterySaver: 'Éco batterie',
+    editFlight: 'Modifier le vol',
+    editFlightDuration: 'Durée du vol',
+    durationMinutes: 'Minutes',
+    durationSeconds: 'Secondes',
     
     // Results
     results: 'Résultats',

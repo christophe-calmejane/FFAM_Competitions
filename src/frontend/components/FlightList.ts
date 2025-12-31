@@ -3,6 +3,7 @@ import type { Flight, CompetitionSettings, Pilot } from '../../backend/types/ind
 import { formatTime } from '../../backend/timer/timer';
 import { t, getLanguage, getPenaltyName } from '../i18n/translations';
 import { createButton } from './Button';
+import { showEditFlightModal } from './Modal';
 import {
   calculateFlightDurationPenalty,
   calculateEarlyTakeoffPenalty91min,
@@ -22,6 +23,7 @@ export interface FlightListItemProps {
   onRemovePenalty: (flightId: string, penaltyIndex: number) => void;
   onTableAnnouncedChange: (flightId: string, announced: boolean) => void;
   onTableSuccessChange: (flightId: string, success: boolean | null) => void;
+  onEditFlight?: (flightId: string, newDurationMs: number) => void;
 }
 
 export function createFlightListItem(props: FlightListItemProps): HTMLElement {
@@ -35,6 +37,7 @@ export function createFlightListItem(props: FlightListItemProps): HTMLElement {
     onRemovePenalty,
     onTableAnnouncedChange,
     onTableSuccessChange,
+    onEditFlight,
   } = props;
 
   const isComplete = flight.endTimestamp !== null;
@@ -66,6 +69,24 @@ export function createFlightListItem(props: FlightListItemProps): HTMLElement {
   header.appendChild(flightNumber);
   header.appendChild(pilotName);
   header.appendChild(durationEl);
+
+  // Add edit button for completed flights
+  if (isComplete && onEditFlight) {
+    const editBtn = createElement('button', {
+      className: 'flight-edit-btn',
+      textContent: '✏️',
+      attributes: { title: t('editFlight') },
+    });
+    editBtn.addEventListener('click', () => {
+      showEditFlightModal({
+        title: `${t('editFlight')} #${flightIndex + 1}`,
+        currentDurationMs: duration,
+        onSave: (newDurationMs) => onEditFlight(flight.id, newDurationMs),
+      });
+    });
+    header.appendChild(editBtn);
+  }
+
   item.appendChild(header);
 
   // Automatic penalties
@@ -248,6 +269,7 @@ export function createFlightList(
     onRemovePenalty: (flightId: string, penaltyIndex: number) => void;
     onTableAnnouncedChange: (flightId: string, announced: boolean) => void;
     onTableSuccessChange: (flightId: string, success: boolean | null) => void;
+    onEditFlight?: (flightId: string, newDurationMs: number) => void;
   }
 ): HTMLElement {
   const list = createElement('div', { className: 'flight-list' });

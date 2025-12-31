@@ -2,14 +2,16 @@ import { createElement, clearElement } from '../utils/dom';
 import { t } from '../i18n/translations';
 import { navigate } from '../router/router';
 import { createButton } from '../components/Button';
+import { showEditFlightModal } from '../components/Modal';
 import {
   getTeam,
   getCompetition,
   getSettings,
+  saveCompetition,
 } from '../../backend/database/db';
 import { formatTime, formatTimeLong } from '../../backend/timer/timer';
 import { getScoreBreakdown, calculateTotalScore } from '../../backend/scoring/rules';
-import type { CompetitionType } from '../../backend/types/index.js';
+import type { CompetitionType, Competition } from '../../backend/types/index.js';
 
 export async function renderResultsPage(
   container: HTMLElement,
@@ -195,6 +197,18 @@ export async function renderResultsPage(
 
   const flightsSummary = createElement('div', { className: 'flights-summary' });
 
+  // Helper function to handle flight edit
+  const handleFlightEdit = async (flightId: string, newDurationMs: number): Promise<void> => {
+    const flight = competition.flights.find(f => f.id === flightId);
+    if (!flight || flight.endTimestamp === null) return;
+
+    flight.endTimestamp = flight.startTimestamp + newDurationMs;
+    flight.duration = newDurationMs;
+
+    await saveCompetition(competition as Competition);
+    renderResultsPage(container, competitionType, teamId, competitionId);
+  };
+
   competition.flights.forEach((flight, index) => {
     const pilot = team.pilots.find(p => p.id === flight.pilotId);
     const duration = flight.endTimestamp ? flight.endTimestamp - flight.startTimestamp : 0;
@@ -215,8 +229,23 @@ export async function renderResultsPage(
       textContent: flightPenalties,
     });
 
+    // Edit button
+    const editBtn = createElement('button', {
+      className: 'flight-edit-btn',
+      textContent: '✏️',
+      attributes: { title: t('editFlight') },
+    });
+    editBtn.addEventListener('click', () => {
+      showEditFlightModal({
+        title: `${t('editFlight')} #${index + 1}`,
+        currentDurationMs: duration,
+        onSave: (newDurationMs) => handleFlightEdit(flight.id, newDurationMs),
+      });
+    });
+
     flightRow.appendChild(flightInfo);
     flightRow.appendChild(penaltiesSpan);
+    flightRow.appendChild(editBtn);
     flightsSummary.appendChild(flightRow);
   });
 

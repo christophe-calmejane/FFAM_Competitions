@@ -1170,9 +1170,19 @@ body {
 .flight-summary-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: var(--spacing-xs);
   font-size: var(--font-size-sm);
   border-bottom: 1px solid var(--border-color);
+  gap: var(--spacing-sm);
+}
+
+.flight-summary-row .flight-info {
+  flex: 1;
+}
+
+.flight-summary-row .flight-edit-btn {
+  flex-shrink: 0;
 }
 
 .flight-penalties {
@@ -1361,4 +1371,60 @@ body {
   .modal-footer .btn {
     width: 100%;
   }
+}
+
+/* Edit Flight Modal */
+.edit-flight-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.duration-inputs-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  justify-content: center;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.duration-input {
+  width: 80px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+  padding: var(--spacing-sm);
+}
+
+.input-suffix {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.duration-separator {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding-bottom: 1.5rem;
+}
+
+/* Flight edit button */
+.flight-edit-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  transition: color 0.2s;
+}
+
+.flight-edit-btn:hover {
+  color: var(--color-primary);
 }
