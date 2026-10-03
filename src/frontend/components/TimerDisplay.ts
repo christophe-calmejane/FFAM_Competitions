@@ -1,5 +1,5 @@
 import { createElement } from '../utils/dom';
-import { formatTimeLong, formatTimePrecise } from '../../backend/timer/timer';
+import { formatTimeLong, formatTimePrecise, roundUpToSecond } from '../../backend/timer/timer';
 
 export interface TimerDisplayProps {
   elapsed: number;
@@ -66,7 +66,8 @@ export function createTimerDisplay(props: TimerDisplayProps): HTMLElement {
     });
     const remainingValueEl = createElement('span', {
       className: 'timer-value',
-      textContent: formatTimeLong(remaining),
+      // Countdown: rounded up, so elapsed (rounded down) + remaining adds up to the total
+      textContent: formatTimeLong(roundUpToSecond(remaining)),
     });
     remainingEl.appendChild(remainingLabelEl);
     remainingEl.appendChild(remainingValueEl);
@@ -102,7 +103,7 @@ export function updateTimerDisplay(
   }
 
   if (remainingValueEl) {
-    remainingValueEl.textContent = formatTimeLong(remaining);
+    remainingValueEl.textContent = formatTimeLong(roundUpToSecond(remaining));
   }
 
   if (remainingEl) {

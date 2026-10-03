@@ -1,38 +1,38 @@
 import { createElement } from '../utils/dom';
-import type { Flight, CompetitionSettings, Pilot } from '../../backend/types/index.js';
+import type { Competition, CompetitionSettings, Pilot } from '../../backend/types/index.js';
+import type { FlightEdit } from '../../backend/competition/competition';
 import { formatTime } from '../../backend/timer/timer';
 import { t, getLanguage, getPenaltyName } from '../i18n/translations';
 import { createButton } from './Button';
 import { showEditFlightModal } from './Modal';
 import {
-  calculateFlightDurationPenalty,
-  calculateEarlyTakeoffPenalty91min,
-  calculateEarlyTakeoffPenalty3h,
-  calculateLateRelayPenalty,
+  getFlightScoreBreakdown,
+  getTakeoffDelay,
   calculateTablePoints,
   sumManualPenalties,
 } from '../../backend/scoring/rules';
 
-export interface FlightListItemProps {
-  flight: Flight;
-  flightIndex: number;
-  pilot: Pilot;
-  settings: CompetitionSettings;
-  competitionStartTimestamp: number;
+export interface FlightListHandlers {
   onAddPenalty: (flightId: string, penaltyId: string) => void;
   onRemovePenalty: (flightId: string, penaltyIndex: number) => void;
   onTableAnnouncedChange: (flightId: string, announced: boolean) => void;
   onTableSuccessChange: (flightId: string, success: boolean | null) => void;
-  onEditFlight?: (flightId: string, newDurationMs: number) => void;
+  onEditFlight?: (flightId: string, edit: FlightEdit) => void;
+}
+
+export interface FlightListItemProps extends FlightListHandlers {
+  competition: Competition;
+  flightIndex: number;
+  pilot: Pilot;
+  settings: CompetitionSettings;
 }
 
 export function createFlightListItem(props: FlightListItemProps): HTMLElement {
   const {
-    flight,
+    competition,
     flightIndex,
     pilot,
     settings,
-    competitionStartTimestamp,
     onAddPenalty,
     onRemovePenalty,
     onTableAnnouncedChange,
@@ -40,6 +40,7 @@ export function createFlightListItem(props: FlightListItemProps): HTMLElement {
     onEditFlight,
   } = props;
 
+  const flight = competition.flights[flightIndex];
   const isComplete = flight.endTimestamp !== null;
   const duration = isComplete ? flight.endTimestamp! - flight.startTimestamp : 0;
 
@@ -79,9 +80,9 @@ export function createFlightListItem(props: FlightListItemProps): HTMLElement {
     });
     editBtn.addEventListener('click', () => {
       showEditFlightModal({
-        title: `${t('editFlight')} #${flightIndex + 1}`,
-        currentDurationMs: duration,
-        onSave: (newDurationMs) => onEditFlight(flight.id, newDurationMs),
+        competition,
+        flightIndex,
+        onSave: (edit) => onEditFlight(flight.id, edit),
       });
     });
     header.appendChild(editBtn);
@@ -93,56 +94,39 @@ export function createFlightListItem(props: FlightListItemProps): HTMLElement {
   if (isComplete) {
     const autoPenalties = createElement('div', { className: 'flight-auto-penalties' });
 
+    const isFirstFlight = flightIndex === 0;
+    const breakdown = getFlightScoreBreakdown(competition, flightIndex, settings);
+
     // Flight duration penalty
-    const durationPenalty = calculateFlightDurationPenalty(
-      duration,
-      settings.targetFlightDuration,
-      settings.flightDurationPenaltyInterval,
-      settings.flightDurationMaxPenalty
-    );
-    
-    if (durationPenalty > 0) {
+    if (breakdown.flightDurationPenalty > 0) {
       const deviation = Math.abs(duration - settings.targetFlightDuration);
       const deviationSign = duration > settings.targetFlightDuration ? '+' : '-';
       
       autoPenalties.appendChild(createElement('div', {
         className: 'penalty-auto penalty-duration',
-        textContent: `${t('flightDurationPenalty')}: ${deviationSign}${formatTime(deviation)} → +${durationPenalty} ${t('points')}`,
+        textContent: `${t('flightDurationPenalty')}: ${deviationSign}${formatTime(deviation)} → +${breakdown.flightDurationPenalty} ${t('points')}`,
       }));
     }
 
     // Early takeoff penalty
-    if (flight.safetyTimeViolation) {
-      const safetyStart = flight.previousFlightEndTimestamp ?? competitionStartTimestamp;
-      const safetyRemaining = (safetyStart + settings.safetyTime) - flight.startTimestamp;
-      
-      const earlyPenalty = settings.competitionType === '91min'
-        ? calculateEarlyTakeoffPenalty91min(safetyRemaining)
-        : calculateEarlyTakeoffPenalty3h(safetyRemaining);
-      
+    if (breakdown.earlyTakeoffPenalty > 0) {
       autoPenalties.appendChild(createElement('div', {
         className: 'penalty-auto penalty-early-takeoff',
-        textContent: `${t('earlyTakeoffPenalty')}: +${earlyPenalty} ${t('points')}`,
+        textContent: `${t('earlyTakeoffPenalty')}: +${breakdown.earlyTakeoffPenalty} ${t('points')}`,
       }));
     }
 
-    // Late relay penalty
-    if (flight.previousFlightEndTimestamp !== null && flightIndex > 0) {
-      const relayTime = flight.startTimestamp - flight.previousFlightEndTimestamp;
-      if (relayTime > settings.maxRelayTime) {
-        const lateRelayPenalty = calculateLateRelayPenalty(
-          relayTime,
-          settings.maxRelayTime,
-          settings.lateRelayPenaltyInterval
-        );
-        
-        const excessTime = relayTime - settings.maxRelayTime;
-        
-        autoPenalties.appendChild(createElement('div', {
-          className: 'penalty-auto penalty-late-relay',
-          textContent: `${t('lateRelayPenalty')}: +${formatTime(excessTime)} → +${lateRelayPenalty} ${t('points')}`,
-        }));
-      }
+    // Late relay penalty (or late first takeoff)
+    const takeoffDelay = getTakeoffDelay(competition, flightIndex);
+    if (breakdown.lateRelayPenalty > 0 && takeoffDelay !== null) {
+      const maxTime = isFirstFlight ? settings.firstTakeoffMaxTime : settings.maxRelayTime;
+      const excessTime = takeoffDelay - maxTime;
+      const label = isFirstFlight ? t('lateFirstTakeoffPenalty') : t('lateRelayPenalty');
+      
+      autoPenalties.appendChild(createElement('div', {
+        className: 'penalty-auto penalty-late-relay',
+        textContent: `${label}: +${formatTime(excessTime)} → +${breakdown.lateRelayPenalty} ${t('points')}`,
+      }));
     }
 
     if (autoPenalties.children.length > 0) {
@@ -260,21 +244,16 @@ export function createFlightListItem(props: FlightListItemProps): HTMLElement {
 }
 
 export function createFlightList(
-  flights: Flight[],
+  competition: Competition,
   pilots: Pilot[],
   settings: CompetitionSettings,
-  competitionStartTimestamp: number,
-  handlers: {
-    onAddPenalty: (flightId: string, penaltyId: string) => void;
-    onRemovePenalty: (flightId: string, penaltyIndex: number) => void;
-    onTableAnnouncedChange: (flightId: string, announced: boolean) => void;
-    onTableSuccessChange: (flightId: string, success: boolean | null) => void;
-    onEditFlight?: (flightId: string, newDurationMs: number) => void;
-  }
+  handlers: FlightListHandlers
 ): HTMLElement {
   const list = createElement('div', { className: 'flight-list' });
 
   const pilotsMap = new Map(pilots.map(p => [p.id, p]));
+
+  const flights = competition.flights;
 
   // Show flights in reverse order (newest first)
   [...flights].reverse().forEach((flight, reversedIndex) => {
@@ -284,11 +263,10 @@ export function createFlightList(
     if (!pilot) return;
 
     const item = createFlightListItem({
-      flight,
+      competition,
       flightIndex,
       pilot,
       settings,
-      competitionStartTimestamp,
       ...handlers,
     });
 

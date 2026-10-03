@@ -8,6 +8,8 @@ import {
   formatTime,
   formatTimeLong,
   formatTimePrecise,
+  formatSecondsPrecise,
+  roundUpToSecond,
 } from '../src/backend/timer/timer';
 import type { TimerState } from '../src/backend/timer/timer';
 
@@ -192,5 +194,30 @@ describe('formatTimePrecise', () => {
     expect(formatTimePrecise(0)).toBe('00:00.0');
     expect(formatTimePrecise(5500)).toBe('00:05.5');
     expect(formatTimePrecise(65300)).toBe('01:05.3');
+  });
+});
+
+describe('formatSecondsPrecise', () => {
+  it('should format seconds with deciseconds', () => {
+    expect(formatSecondsPrecise(0)).toBe('0.0');
+    expect(formatSecondsPrecise(1250)).toBe('1.2');
+    expect(formatSecondsPrecise(41399)).toBe('41.3');
+    expect(formatSecondsPrecise(125000)).toBe('125.0');
+  });
+});
+
+describe('roundUpToSecond', () => {
+  it('should show 1 second left from 1.00s down to 0.01s', () => {
+    expect(roundUpToSecond(1000)).toBe(1000);
+    expect(roundUpToSecond(10)).toBe(1000);
+    expect(roundUpToSecond(1001)).toBe(2000);
+    expect(roundUpToSecond(0)).toBe(0);
+  });
+
+  it('should keep elapsed (rounded down) + remaining (rounded up) equal to the total', () => {
+    const total = 10 * 60 * 1000;
+    const elapsed = 117_100; // 01:57.1
+    expect(formatTime(elapsed)).toBe('01:57');
+    expect(formatTime(roundUpToSecond(total - elapsed))).toBe('08:03');
   });
 });

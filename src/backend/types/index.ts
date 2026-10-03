@@ -33,10 +33,13 @@ export interface Flight {
   startTimestamp: number; // Absolute timestamp when flight started
   endTimestamp: number | null; // Null if still in flight
   duration: number; // Computed duration in ms
+  // True when the flight was still in progress when the competition ended.
+  // Undefined for flights recorded before this field existed.
+  endedByCompetitionEnd?: boolean;
   
   // Inter-flight timing
   previousFlightEndTimestamp: number | null; // When previous flight ended
-  safetyTimeViolation: boolean; // Took off during safety period
+  safetyTimeViolation: boolean; // As recorded at takeoff (scoring recomputes it from timestamps)
   
   // Penalties/bonuses for this flight (computed)
   flightDurationPenalty: number;
@@ -142,15 +145,15 @@ export const DEFAULT_3H_SETTINGS: Omit<CompetitionSettings, 'id'> = {
   competitionType: '3h',
   totalDuration: 3 * 60 * 60 * 1000, // 3 hours
   targetFlightDuration: 10 * 60 * 1000, // 10 minutes
-  safetyTime: 20 * 1000, // 20 seconds
-  maxRelayTime: 30 * 1000, // 30 seconds
-  firstTakeoffMaxTime: 30 * 1000, // 30 seconds
+  safetyTime: 30 * 1000, // 30 seconds of neutralisation (takeoff before = early)
+  maxRelayTime: 40 * 1000, // 30s neutralisation + 10s window (takeoff after = late)
+  firstTakeoffMaxTime: 10 * 1000, // 10 seconds (no safety period before the first flight)
   
   flightDurationPenaltyInterval: 2, // 1 point per 2 seconds
   flightDurationMaxPenalty: 60, // max 60 points
   earlyTakeoffPenaltyPerSecond: 0, // fixed 20 points instead
   lateRelayPenaltyInterval: 10, // 1 point per 10 seconds
-  lateRelayPenaltyStart: 30 * 1000, // after 30 seconds
+  lateRelayPenaltyStart: 40 * 1000, // after 40 seconds
   
   manualPenalties: [
     { id: 'control_takeover', name: 'Control Takeover', nameEn: 'Control Takeover', nameFr: 'Reprise de commandes', points: 10 },

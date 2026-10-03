@@ -19,8 +19,11 @@ import {
   formatTime,
   isInSafetyPeriod,
   getSafetyTimeRemaining,
+  roundUpToSecond,
 } from '../../backend/timer/timer';
 import { calculateTotalScore } from '../../backend/scoring/rules';
+import { applyFlightEdit, finishCompetition } from '../../backend/competition/competition';
+import type { FlightEdit } from '../../backend/competition/competition';
 import type { CompetitionType, Team, Competition, Flight, CompetitionSettings, ManualPenalty } from '../../backend/types/index.js';
 
 let currentTeam: Team | null = null;
@@ -198,22 +201,21 @@ export async function renderCompetitionActivePage(
     flightTimerContainer.appendChild(flightTimerDisplay);
   } else {
     // Show safety timer and relay timer when no flight in progress
-    const lastFlight = getLastCompletedFlight();
-    const lastFlightEnd = lastFlight?.endTimestamp ?? currentCompetition.startTimestamp ?? Date.now();
-    const inSafetyPeriod = isInSafetyPeriod(lastFlightEnd, currentSettings.safetyTime);
+    const takeoffWindow = getNextTakeoffWindow(currentCompetition, currentSettings);
     const now = Date.now();
+    const inSafetyPeriod = isInSafetyPeriod(takeoffWindow.referenceTimestamp, takeoffWindow.safetyTime, now);
     
-    // Calculate relay time (time since last flight ended)
-    const timeSinceLastFlightEnd = now - lastFlightEnd;
-    const relayTimeExceeded = timeSinceLastFlightEnd > currentSettings.maxRelayTime;
+    // Calculate relay time (time since last flight ended, or since competition start)
+    const timeSinceReference = now - takeoffWindow.referenceTimestamp;
+    const relayTimeExceeded = timeSinceReference > takeoffWindow.maxTime;
     
     if (inSafetyPeriod) {
-      const safetyRemaining = getSafetyTimeRemaining(lastFlightEnd, currentSettings.safetyTime);
+      const safetyRemaining = getSafetyTimeRemaining(takeoffWindow.referenceTimestamp, takeoffWindow.safetyTime, now);
       
       const safetyDisplay = createElement('div', { className: 'safety-timer' });
       safetyDisplay.innerHTML = `
         <div class="safety-label">⚠️ ${t('safetyPeriodActive')}</div>
-        <div class="safety-time" id="safety-time">${formatTime(safetyRemaining)}</div>
+        <div class="safety-time" id="safety-time">${formatTime(roundUpToSecond(safetyRemaining))}</div>
       `;
       flightTimerContainer.appendChild(safetyDisplay);
     } else {
@@ -225,8 +227,8 @@ export async function renderCompetitionActivePage(
       
       relayDisplay.innerHTML = `
         <div class="relay-label">${relayTimeExceeded ? '⚠️' : '✈️'} ${t('waitingForTakeoff')}</div>
-        <div class="relay-time" id="relay-time">${formatTime(timeSinceLastFlightEnd)}</div>
-        <div class="relay-max">${t('maxRelayTime')}: ${formatTime(currentSettings.maxRelayTime)}</div>
+        <div class="relay-time" id="relay-time">${formatTime(timeSinceReference)}</div>
+        <div class="relay-max">${t(takeoffWindow.isFirstTakeoff ? 'firstTakeoffMaxTime' : 'maxRelayTime')}: ${formatTime(takeoffWindow.maxTime)}</div>
       `;
       flightTimerContainer.appendChild(relayDisplay);
     }
@@ -291,16 +293,15 @@ export async function renderCompetitionActivePage(
   flightsSection.appendChild(flightsTitle);
 
   const flightList = createFlightList(
-    currentCompetition.flights,
+    currentCompetition,
     currentTeam.pilots,
     currentSettings,
-    currentCompetition.startTimestamp ?? Date.now(),
     {
       onAddPenalty: (flightId, penaltyId) => handleAddPenalty(container, competitionType, flightId, penaltyId),
       onRemovePenalty: (flightId, penaltyIndex) => handleRemovePenalty(container, competitionType, flightId, penaltyIndex),
       onTableAnnouncedChange: (flightId, announced) => handleTableAnnouncedChange(container, competitionType, flightId, announced),
       onTableSuccessChange: (flightId, success) => handleTableSuccessChange(container, competitionType, flightId, success),
-      onEditFlight: (flightId, newDurationMs) => handleEditFlight(container, competitionType, flightId, newDurationMs),
+      onEditFlight: (flightId, edit) => handleEditFlight(container, competitionType, flightId, edit),
     }
   );
   flightsSection.appendChild(flightList);
@@ -326,6 +327,36 @@ function getLastCompletedFlight(): Flight | null {
   
   const completedFlights = currentCompetition.flights.filter(f => f.endTimestamp !== null);
   return completedFlights[completedFlights.length - 1] ?? null;
+}
+
+interface TakeoffWindow {
+  isFirstTakeoff: boolean;
+  referenceTimestamp: number; // Last landing, or competition start for the first takeoff
+  safetyTime: number; // Takeoff before reference + safetyTime is early
+  maxTime: number; // Takeoff after reference + maxTime is late
+}
+
+/**
+ * The first takeoff has no safety period: the first pilot must take off
+ * within firstTakeoffMaxTime after the competition start.
+ * Every other takeoff is measured from the previous landing.
+ */
+function getNextTakeoffWindow(competition: Competition, settings: CompetitionSettings): TakeoffWindow {
+  const lastFlight = getLastCompletedFlight();
+  if (lastFlight?.endTimestamp != null) {
+    return {
+      isFirstTakeoff: false,
+      referenceTimestamp: lastFlight.endTimestamp,
+      safetyTime: settings.safetyTime,
+      maxTime: settings.maxRelayTime,
+    };
+  }
+  return {
+    isFirstTakeoff: true,
+    referenceTimestamp: competition.startTimestamp ?? Date.now(),
+    safetyTime: 0,
+    maxTime: settings.firstTakeoffMaxTime,
+  };
 }
 
 function getPilotName(pilotId: string): string {
@@ -362,8 +393,8 @@ async function handlePilotClick(
 
   // Start new flight
   const lastFlight = getLastCompletedFlight();
-  const lastFlightEnd = lastFlight?.endTimestamp ?? currentCompetition.startTimestamp ?? now;
-  const inSafetyPeriod = isInSafetyPeriod(lastFlightEnd, currentSettings.safetyTime, now);
+  const takeoffWindow = getNextTakeoffWindow(currentCompetition, currentSettings);
+  const inSafetyPeriod = isInSafetyPeriod(takeoffWindow.referenceTimestamp, takeoffWindow.safetyTime, now);
 
   const newFlight: Flight = {
     id: generateId(),
@@ -474,16 +505,11 @@ async function handleEditFlight(
   container: HTMLElement,
   competitionType: CompetitionType,
   flightId: string,
-  newDurationMs: number
+  edit: FlightEdit
 ): Promise<void> {
   if (!currentCompetition || !currentTeam) return;
 
-  const flight = currentCompetition.flights.find(f => f.id === flightId);
-  if (!flight || flight.endTimestamp === null) return;
-
-  // Update the flight duration by adjusting the endTimestamp
-  flight.endTimestamp = flight.startTimestamp + newDurationMs;
-  flight.duration = newDurationMs;
+  if (!applyFlightEdit(currentCompetition, flightId, edit)) return;
 
   await saveCompetition(currentCompetition);
   renderCompetitionActivePage(container, competitionType, currentTeam.id, currentCompetition.id);
@@ -493,20 +519,10 @@ async function endCompetition(
   _container: HTMLElement,
   competitionType: CompetitionType
 ): Promise<void> {
-  if (!currentCompetition || !currentTeam) return;
+  if (!currentCompetition || !currentTeam || !currentSettings) return;
 
-  const now = Date.now();
-  
-  // End any active flight
-  const activeFlight = getCurrentFlight();
-  if (activeFlight) {
-    activeFlight.endTimestamp = now;
-    activeFlight.duration = now - activeFlight.startTimestamp;
-  }
-
-  currentCompetition.endTimestamp = now;
-  currentCompetition.isActive = false;
-  currentCompetition.currentFlightId = null;
+  // Closes the flight in progress (flagged as interrupted by the end)
+  finishCompetition(currentCompetition, currentSettings, Date.now());
 
   await saveCompetition(currentCompetition);
 
@@ -557,13 +573,12 @@ function startAnimationLoop(container: HTMLElement, competitionType: Competition
       }
     } else {
       // Update safety timer
+      const takeoffWindow = getNextTakeoffWindow(currentCompetition, currentSettings);
       const safetyTimeEl = document.getElementById('safety-time');
       if (safetyTimeEl) {
-        const lastFlight = getLastCompletedFlight();
-        const lastFlightEnd = lastFlight?.endTimestamp ?? currentCompetition.startTimestamp ?? now;
-        const safetyRemaining = getSafetyTimeRemaining(lastFlightEnd, currentSettings.safetyTime, now);
+        const safetyRemaining = getSafetyTimeRemaining(takeoffWindow.referenceTimestamp, takeoffWindow.safetyTime, now);
         
-        safetyTimeEl.textContent = formatTime(safetyRemaining);
+        safetyTimeEl.textContent = formatTime(roundUpToSecond(safetyRemaining));
         
         // Re-render when safety period ends to show relay timer
         if (safetyRemaining === 0 && currentTeam) {
@@ -576,12 +591,10 @@ function startAnimationLoop(container: HTMLElement, competitionType: Competition
       const relayTimeEl = document.getElementById('relay-time');
       const relayContainer = document.getElementById('relay-timer-container');
       if (relayTimeEl && relayContainer) {
-        const lastFlight = getLastCompletedFlight();
-        const lastFlightEnd = lastFlight?.endTimestamp ?? currentCompetition.startTimestamp ?? now;
-        const timeSinceLastFlightEnd = now - lastFlightEnd;
-        const relayTimeExceeded = timeSinceLastFlightEnd > currentSettings.maxRelayTime;
+        const timeSinceReference = now - takeoffWindow.referenceTimestamp;
+        const relayTimeExceeded = timeSinceReference > takeoffWindow.maxTime;
         
-        relayTimeEl.textContent = formatTime(timeSinceLastFlightEnd);
+        relayTimeEl.textContent = formatTime(timeSinceReference);
         
         // Update color based on whether penalty applies
         if (relayTimeExceeded) {

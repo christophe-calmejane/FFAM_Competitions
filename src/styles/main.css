@@ -1159,34 +1159,120 @@ body {
   color: var(--color-success);
 }
 
-.flights-summary {
+.flights-title {
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Per-flight table (results) */
+.flights-table {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.flight-summary-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-xs);
   font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.flights-table-row {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr) 3rem 4.1rem 2.5rem 2rem;
+  align-items: center;
+  column-gap: 6px;
+  min-height: 2.25rem;
+}
+
+.flights-table-row .col-pilot {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flights-table-row .col-number {
+  text-align: right;
+}
+
+.flights-table-row .col-index {
+  color: var(--text-secondary);
+}
+
+.flights-table-row .col-points {
+  font-weight: 600;
+}
+
+.flights-table-row .col-action {
+  display: flex;
+  justify-content: center;
+}
+
+.flights-table-head {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: var(--spacing-xs);
+}
+
+.flights-table-head .col-points {
+  font-weight: 600;
+}
+
+.flights-table-entry {
+  padding: 2px 0 var(--spacing-xs);
   border-bottom: 1px solid var(--border-color);
-  gap: var(--spacing-sm);
 }
 
-.flight-summary-row .flight-info {
-  flex: 1;
+.flights-table-missed .col-pilot {
+  white-space: normal;
+  font-style: italic;
+  color: var(--text-secondary);
 }
 
-.flight-summary-row .flight-edit-btn {
-  flex-shrink: 0;
+.flight-penalty-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  padding-left: calc(1.25rem + 6px);
+  padding-bottom: 2px;
 }
 
-.flight-penalties {
+.flight-penalty-chip {
+  padding: 1px var(--spacing-sm);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-xs);
+  background-color: var(--bg-tertiary);
+}
+
+.flight-penalty-chip.points-penalty {
+  background-color: rgba(234, 67, 53, 0.1);
+}
+
+.flight-penalty-chip.points-bonus {
+  background-color: rgba(52, 168, 83, 0.1);
+}
+
+.flights-table .flight-penalty-chip.points-none {
+  color: var(--text-secondary);
+}
+
+.flights-table .points-penalty {
   color: var(--color-danger);
+}
+
+.flights-table .points-bonus {
+  color: var(--color-success);
+}
+
+.flights-table .points-none {
+  color: var(--text-tertiary);
+}
+
+.flights-table-total {
+  font-weight: 600;
+  border-top: 2px solid var(--border-color);
+  margin-top: -1px;
+}
+
+.flights-table .flight-edit-btn {
+  padding: 2px;
 }
 
 .warning-card {
@@ -1267,6 +1353,15 @@ body {
   
   .form-actions .btn {
     width: 100%;
+  }
+  
+  .results-content {
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+  
+  .result-card {
+    padding: var(--spacing-md);
   }
 }
 
@@ -1412,6 +1507,27 @@ body {
   font-weight: 600;
   color: var(--text-secondary);
   padding-bottom: 1.5rem;
+}
+
+.edit-flight-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.takeoff-input {
+  width: 110px;
+}
+
+.edit-flight-interrupted {
+  align-items: flex-start;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.edit-flight-interrupted input[type="checkbox"] {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 /* Flight edit button */

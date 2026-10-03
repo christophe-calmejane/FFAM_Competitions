@@ -8,6 +8,11 @@ import {
   sumManualPenalties,
   calculateTeamBonuses,
   calculateTotalScore,
+  getFlightScoreBreakdown,
+  getScoreBreakdown,
+  getTakeoffDelay,
+  getMissedTakeoffDelay,
+  isFlightInterruptedByCompetitionEnd,
 } from '../src/backend/scoring/rules';
 import {
   DEFAULT_91MIN_SETTINGS,
@@ -285,7 +290,8 @@ describe('Total Score Calculation', () => {
       type: '91min',
       teamId: 'team1',
       startTimestamp: startTime,
-      endTimestamp: startTime + 91 * 60 * 1000,
+      // Ended 20s after the landing: no late relay for the takeoff that did not happen
+      endTimestamp: startTime + 5000 + 4 * 60 * 1000 + 20 * 1000,
       isActive: false,
       currentFlightId: null,
       safetyPeriodEndTimestamp: null,
@@ -345,7 +351,246 @@ describe('Total Score Calculation', () => {
     
     // No thermal plane: +50
     // 4 pilots never flew: +400
-    // Total: 450
-    expect(score).toBe(450);
+    // Nobody took off during the 3h: late first takeoff ceil((10800s - 10s) / 10s) = +1079
+    // Total: 1529
+    expect(score).toBe(1529);
+  });
+});
+
+describe('3h default settings', () => {
+  it('should use the official timing values', () => {
+    expect(DEFAULT_3H_SETTINGS.safetyTime).toBe(30 * 1000);
+    expect(DEFAULT_3H_SETTINGS.maxRelayTime).toBe(40 * 1000);
+    expect(DEFAULT_3H_SETTINGS.firstTakeoffMaxTime).toBe(10 * 1000);
+  });
+});
+
+// ============ Shared 3h fixtures ============
+
+const COMPETITION_START = 1_000_000;
+const TEN_MINUTES = 10 * 60 * 1000;
+const THREE_HOURS = 3 * 60 * 60 * 1000;
+const SETTINGS_3H: CompetitionSettings = { ...DEFAULT_3H_SETTINGS, id: '3h' };
+
+function makeFlight(overrides: Partial<Flight>): Flight {
+  return {
+    id: 'f',
+    teamId: 'team1',
+    pilotId: 'p1',
+    flightNumber: 1,
+    startTimestamp: COMPETITION_START,
+    endTimestamp: COMPETITION_START + TEN_MINUTES,
+    duration: TEN_MINUTES,
+    previousFlightEndTimestamp: null,
+    safetyTimeViolation: false,
+    flightDurationPenalty: 0,
+    earlyTakeoffPenalty: 0,
+    lateRelayPenalty: 0,
+    manualPenalties: [],
+    tableAnnounced: false,
+    tableSuccess: null,
+    ...overrides,
+  };
+}
+
+/**
+ * Build a chained list of flights from [takeoffDelayMs, durationMs | null] pairs
+ * (null duration = still flying).
+ */
+function makeCompetition(
+  flightTimes: [number, number | null][],
+  endTimestamp: number | null = null
+): Competition {
+  const flights: Flight[] = [];
+  let previousEnd: number | null = null;
+  let reference = COMPETITION_START;
+  flightTimes.forEach(([takeoffDelay, duration], index) => {
+    const start = reference + takeoffDelay;
+    const end = duration === null ? null : start + duration;
+    flights.push(makeFlight({
+      id: `f${index + 1}`,
+      flightNumber: index + 1,
+      startTimestamp: start,
+      endTimestamp: end,
+      duration: duration ?? 0,
+      previousFlightEndTimestamp: previousEnd,
+      safetyTimeViolation: index > 0 && takeoffDelay < SETTINGS_3H.safetyTime,
+    }));
+    previousEnd = end;
+    reference = end ?? start;
+  });
+
+  return {
+    id: 'comp1',
+    type: '3h',
+    teamId: 'team1',
+    startTimestamp: COMPETITION_START,
+    endTimestamp,
+    isActive: endTimestamp === null,
+    currentFlightId: null,
+    safetyPeriodEndTimestamp: null,
+    flights,
+    createdAt: COMPETITION_START,
+  };
+}
+
+describe('Flight Score Breakdown (3h)', () => {
+  it('should never apply an early takeoff penalty to the first flight', () => {
+    // Takeoff 1s after the start, flagged as safety violation by older app versions
+    const competition = makeCompetition([[1000, TEN_MINUTES]]);
+    competition.flights[0].safetyTimeViolation = true;
+
+    const breakdown = getFlightScoreBreakdown(competition, 0, SETTINGS_3H);
+
+    expect(breakdown.earlyTakeoffPenalty).toBe(0);
+    expect(breakdown.lateRelayPenalty).toBe(0);
+    expect(breakdown.total).toBe(0);
+  });
+
+  it('should penalize a late first takeoff per started 10 seconds after 10 seconds', () => {
+    const competition = makeCompetition([[21 * 1000, TEN_MINUTES]]);
+
+    expect(getTakeoffDelay(competition, 0)).toBe(21 * 1000);
+    expect(getFlightScoreBreakdown(competition, 0, SETTINGS_3H).lateRelayPenalty).toBe(2);
+  });
+
+  it('should apply 20 points for a takeoff during the 30s neutralisation', () => {
+    const competition = makeCompetition([[0, TEN_MINUTES], [29 * 1000, TEN_MINUTES]]);
+    const breakdown = getFlightScoreBreakdown(competition, 1, SETTINGS_3H);
+    expect(breakdown.earlyTakeoffPenalty).toBe(20);
+    expect(breakdown.lateRelayPenalty).toBe(0);
+  });
+
+  it('should derive the early takeoff from timestamps, not from the recorded flag', () => {
+    const competition = makeCompetition([[0, TEN_MINUTES], [31 * 1000, TEN_MINUTES]]);
+    competition.flights[1].safetyTimeViolation = true; // Stale flag (e.g. takeoff time edited)
+    expect(getFlightScoreBreakdown(competition, 1, SETTINGS_3H).earlyTakeoffPenalty).toBe(0);
+  });
+
+  it('should not penalize a relay between 30s and 40s', () => {
+    const competition = makeCompetition([[0, TEN_MINUTES], [39 * 1000, TEN_MINUTES]]);
+    expect(getFlightScoreBreakdown(competition, 1, SETTINGS_3H).total).toBe(0);
+  });
+
+  it('should apply 1 point per started 10 seconds after 40s', () => {
+    const late41 = makeCompetition([[0, TEN_MINUTES], [41 * 1000, TEN_MINUTES]]);
+    const late51 = makeCompetition([[0, TEN_MINUTES], [51 * 1000, TEN_MINUTES]]);
+    expect(getFlightScoreBreakdown(late41, 1, SETTINGS_3H).lateRelayPenalty).toBe(1);
+    expect(getFlightScoreBreakdown(late51, 1, SETTINGS_3H).lateRelayPenalty).toBe(2);
+  });
+
+  it('should keep total score consistent with the breakdown', () => {
+    const team: Team = {
+      id: 'team1',
+      name: 'Test Team',
+      pilots: [
+        { id: 'p1', name: 'Pilot 1', isFemale: false, hasThermalPlane: true },
+        { id: 'p2', name: 'Pilot 2', isFemale: false, hasThermalPlane: false },
+        { id: 'p3', name: 'Pilot 3', isFemale: false, hasThermalPlane: false },
+        { id: 'p4', name: 'Pilot 4', isFemale: false, hasThermalPlane: false },
+      ],
+      competitionType: '3h',
+      createdAt: COMPETITION_START,
+    };
+    // 4:31 -> capped at 60, then a relay at 41s; the second flight is still flying at the end
+    const competition = makeCompetition([[1000, (4 * 60 + 31) * 1000], [41 * 1000, null]]);
+    competition.flights[0].manualPenalties = [{ type: 'landing_outside', points: 10, description: 'Landing Outside Zone' }];
+    competition.flights[1].pilotId = 'p2';
+    competition.flights[1].endTimestamp = COMPETITION_START + THREE_HOURS;
+    competition.flights[1].endedByCompetitionEnd = true;
+    competition.endTimestamp = COMPETITION_START + THREE_HOURS;
+    competition.isActive = false;
+
+    const breakdown = getScoreBreakdown(team, competition, SETTINGS_3H);
+
+    expect(breakdown.flightDurationPenalties).toBe(60 + 60); // Second flight overran 10 min before the end
+    expect(breakdown.earlyTakeoffPenalties).toBe(0);
+    expect(breakdown.lateRelayPenalties).toBe(1);
+    expect(breakdown.manualPenalties).toBe(10);
+    expect(breakdown.noThermalPenalty).toBe(0);
+    expect(breakdown.pilotNeverFlewPenalty).toBe(200); // p3 and p4 never flew
+    expect(calculateTotalScore(team, competition, SETTINGS_3H)).toBe(breakdown.total);
+    expect(breakdown.total).toBe(331);
+  });
+});
+
+describe('End of competition (3h)', () => {
+  const landedAt = (secondsBeforeEnd: number) => THREE_HOURS - secondsBeforeEnd * 1000 - TEN_MINUTES;
+
+  it('should not penalize a flight cut short by the end of the competition', () => {
+    // Took off on time, still flying for 4:50 when the 3h ended
+    const competition = makeCompetition([[1000, landedAt(0) - 1000], [35 * 1000, null]]);
+    const lastFlight = competition.flights[1];
+    lastFlight.endTimestamp = lastFlight.startTimestamp + (4 * 60 + 50) * 1000;
+    lastFlight.endedByCompetitionEnd = true;
+    competition.endTimestamp = lastFlight.endTimestamp;
+
+    expect(isFlightInterruptedByCompetitionEnd(competition, 1)).toBe(true);
+    expect(getFlightScoreBreakdown(competition, 1, SETTINGS_3H).flightDurationPenalty).toBe(0);
+    expect(getMissedTakeoffDelay(competition)).toBeNull();
+  });
+
+  it('should still apply the takeoff penalties of the interrupted flight', () => {
+    const competition = makeCompetition([[1000, TEN_MINUTES], [45 * 1000, null]]);
+    const lastFlight = competition.flights[1];
+    lastFlight.endTimestamp = lastFlight.startTimestamp + 60 * 1000;
+    lastFlight.endedByCompetitionEnd = true;
+    competition.endTimestamp = lastFlight.endTimestamp;
+
+    const breakdown = getFlightScoreBreakdown(competition, 1, SETTINGS_3H);
+    expect(breakdown.flightDurationPenalty).toBe(0);
+    expect(breakdown.lateRelayPenalty).toBe(1);
+  });
+
+  it('should penalize the overrun of a flight still flying at the end', () => {
+    const competition = makeCompetition([[1000, null]]);
+    const flight = competition.flights[0];
+    flight.endTimestamp = flight.startTimestamp + TEN_MINUTES + 20 * 1000;
+    flight.endedByCompetitionEnd = true;
+    competition.endTimestamp = flight.endTimestamp;
+
+    expect(getFlightScoreBreakdown(competition, 0, SETTINGS_3H).flightDurationPenalty).toBe(10);
+  });
+
+  it('should treat a legacy last flight ending exactly with the competition as interrupted', () => {
+    const competition = makeCompetition([[1000, 5 * 60 * 1000]]);
+    competition.endTimestamp = competition.flights[0].endTimestamp;
+
+    expect(competition.flights[0].endedByCompetitionEnd).toBeUndefined();
+    expect(isFlightInterruptedByCompetitionEnd(competition, 0)).toBe(true);
+    expect(getFlightScoreBreakdown(competition, 0, SETTINGS_3H).flightDurationPenalty).toBe(0);
+  });
+
+  it('should penalize a duration normally when the last flight landed before the end', () => {
+    const competition = makeCompetition([[1000, 9 * 60 * 1000]]);
+    competition.endTimestamp = competition.flights[0].endTimestamp! + 20 * 1000;
+
+    expect(isFlightInterruptedByCompetitionEnd(competition, 0)).toBe(false);
+    expect(getFlightScoreBreakdown(competition, 0, SETTINGS_3H).flightDurationPenalty).toBe(30);
+  });
+
+  it('should penalize a missing takeoff when the last landing left time to take off', () => {
+    const team: Team = {
+      id: 'team1',
+      name: 'Test Team',
+      pilots: [{ id: 'p1', name: 'Pilot 1', isFemale: false, hasThermalPlane: true }],
+      competitionType: '3h',
+      createdAt: COMPETITION_START,
+    };
+
+    // Landed 50s before the end and nobody took off: relay of 50s -> 1 point
+    const competition = makeCompetition([[0, TEN_MINUTES]]);
+    competition.endTimestamp = competition.flights[0].endTimestamp! + 50 * 1000;
+    expect(getMissedTakeoffDelay(competition)).toBe(50 * 1000);
+    expect(getScoreBreakdown(team, competition, SETTINGS_3H).lateRelayPenalties).toBe(1);
+
+    // Landed 40s before the end: still within the allowed relay time
+    competition.endTimestamp = competition.flights[0].endTimestamp! + 40 * 1000;
+    expect(getScoreBreakdown(team, competition, SETTINGS_3H).lateRelayPenalties).toBe(0);
+  });
+
+  it('should not count a missing takeoff while the competition is running', () => {
+    const competition = makeCompetition([[0, TEN_MINUTES]]);
+    expect(getMissedTakeoffDelay(competition)).toBeNull();
   });
 });

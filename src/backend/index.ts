@@ -3,3 +3,4 @@ export * from './types';
 export * from './database/db';
 export * from './scoring/rules';
 export * from './timer/timer';
+export * from './competition/competition';

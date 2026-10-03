@@ -64,7 +64,14 @@ export interface Translations {
   flightDurationPenalty: string;
   earlyTakeoffPenalty: string;
   lateRelayPenalty: string;
+  lateFirstTakeoffPenalty: string;
   manualPenalties: string;
+  
+  // Short penalty labels (per-flight details)
+  penaltyDurationShort: string;
+  penaltyEarlyTakeoffShort: string;
+  penaltyLateRelayShort: string;
+  penaltyLateFirstTakeoffShort: string;
   
   // 91min specific
   tableAnnounced: string;
@@ -87,6 +94,11 @@ export interface Translations {
   batterySaver: string;
   editFlight: string;
   editFlightDuration: string;
+  editTakeoffDelay: string;
+  editTakeoffDelayFirst: string;
+  flightInterruptedByEnd: string;
+  flightInterruptedShort: string;
+  missedTakeoff: string;
   durationMinutes: string;
   durationSeconds: string;
   
@@ -94,6 +106,11 @@ export interface Translations {
   results: string;
   scoreBreakdown: string;
   finalScore: string;
+  columnPilot: string;
+  columnTakeoffDelay: string;
+  columnFlightTime: string;
+  columnPenalties: string;
+  flightsTotal: string;
   
   // Settings page
   competitionSettings: string;
@@ -188,7 +205,14 @@ export const translations: Record<Language, Translations> = {
     flightDurationPenalty: 'Duration Penalty',
     earlyTakeoffPenalty: 'Early Takeoff Penalty',
     lateRelayPenalty: 'Late Relay Penalty',
+    lateFirstTakeoffPenalty: 'Late First Takeoff Penalty',
     manualPenalties: 'Manual Penalties',
+    
+    // Short penalty labels (per-flight details)
+    penaltyDurationShort: 'Duration',
+    penaltyEarlyTakeoffShort: 'Early takeoff',
+    penaltyLateRelayShort: 'Late relay',
+    penaltyLateFirstTakeoffShort: 'Late first takeoff',
     
     // 91min specific
     tableAnnounced: 'Table Announced',
@@ -211,6 +235,11 @@ export const translations: Record<Language, Translations> = {
     batterySaver: 'Battery Saver',
     editFlight: 'Edit Flight',
     editFlightDuration: 'Flight Duration',
+    editTakeoffDelay: 'Takeoff time after the previous landing',
+    editTakeoffDelayFirst: 'Takeoff time after the competition start',
+    flightInterruptedByEnd: 'Flight still in progress at the end of the competition (no penalty for a short flight)',
+    flightInterruptedShort: 'Interrupted by the end',
+    missedTakeoff: 'No takeoff before the end',
     durationMinutes: 'Minutes',
     durationSeconds: 'Seconds',
     
@@ -218,6 +247,11 @@ export const translations: Record<Language, Translations> = {
     results: 'Results',
     scoreBreakdown: 'Score Breakdown',
     finalScore: 'Final Score',
+    columnPilot: 'Pilot',
+    columnTakeoffDelay: 'Takeoff (s)',
+    columnFlightTime: 'Flight',
+    columnPenalties: 'Pen.',
+    flightsTotal: 'Flights total',
     
     // Settings page
     competitionSettings: 'Competition Settings',
@@ -311,7 +345,14 @@ export const translations: Record<Language, Translations> = {
     flightDurationPenalty: 'Pénalité de durée',
     earlyTakeoffPenalty: 'Pénalité décollage anticipé',
     lateRelayPenalty: 'Pénalité relais tardif',
+    lateFirstTakeoffPenalty: 'Pénalité premier décollage tardif',
     manualPenalties: 'Pénalités manuelles',
+    
+    // Short penalty labels (per-flight details)
+    penaltyDurationShort: 'Durée',
+    penaltyEarlyTakeoffShort: 'Décollage anticipé',
+    penaltyLateRelayShort: 'Relais tardif',
+    penaltyLateFirstTakeoffShort: 'Premier décollage tardif',
     
     // 91min specific
     tableAnnounced: 'Table annoncée',
@@ -334,6 +375,11 @@ export const translations: Record<Language, Translations> = {
     batterySaver: 'Éco batterie',
     editFlight: 'Modifier le vol',
     editFlightDuration: 'Durée du vol',
+    editTakeoffDelay: 'Temps de décollage après le posé précédent',
+    editTakeoffDelayFirst: "Temps de décollage après le départ de l'épreuve",
+    flightInterruptedByEnd: "Vol en cours à la fin de l'épreuve (pas de pénalité pour un vol trop court)",
+    flightInterruptedShort: 'Interrompu par la fin',
+    missedTakeoff: 'Pas de décollage avant la fin',
     durationMinutes: 'Minutes',
     durationSeconds: 'Secondes',
     
@@ -341,6 +387,11 @@ export const translations: Record<Language, Translations> = {
     results: 'Résultats',
     scoreBreakdown: 'Détail du score',
     finalScore: 'Score final',
+    columnPilot: 'Pilote',
+    columnTakeoffDelay: 'Décol. (s)',
+    columnFlightTime: 'Vol',
+    columnPenalties: 'Pén.',
+    flightsTotal: 'Total vols',
     
     // Settings page
     competitionSettings: 'Paramètres de compétition',

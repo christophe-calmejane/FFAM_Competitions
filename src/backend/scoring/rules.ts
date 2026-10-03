@@ -1,7 +1,6 @@
 import type {
   Competition,
   CompetitionSettings,
-  Flight,
   Team,
   ManualPenalty,
 } from '../types/index.js';
@@ -110,70 +109,169 @@ export function sumManualPenalties(penalties: ManualPenalty[]): number {
   return penalties.reduce((sum, p) => sum + p.points, 0);
 }
 
-// ============ Flight Total Score ============
+// ============ Takeoff Delay ============
 
-export function calculateFlightScore(
-  flight: Flight,
-  settings: CompetitionSettings,
-  isFirstFlight: boolean,
-  competitionStartTimestamp: number
+/**
+ * Time between the reference point and the takeoff: the competition start for
+ * the first flight, the previous landing for every other flight.
+ * Returns null when the previous landing is unknown.
+ */
+export function getTakeoffDelay(competition: Competition, flightIndex: number): number | null {
+  const flight = competition.flights[flightIndex];
+  if (flightIndex === 0) {
+    return competition.startTimestamp === null ? null : flight.startTimestamp - competition.startTimestamp;
+  }
+  if (flight.previousFlightEndTimestamp === null) {
+    return null;
+  }
+  return flight.startTimestamp - flight.previousFlightEndTimestamp;
+}
+
+function calculateTakeoffDelayPenalties(
+  takeoffDelay: number,
+  isFirstTakeoff: boolean,
+  settings: CompetitionSettings
+): { earlyTakeoffPenalty: number; lateRelayPenalty: number } {
+  // There is no safety period before the first flight: the first pilot must take off
+  // within the first takeoff window, so the first takeoff can never be early.
+  if (isFirstTakeoff) {
+    return {
+      earlyTakeoffPenalty: 0,
+      lateRelayPenalty: settings.competitionType === '91min'
+        ? calculateFirstTakeoffPenalty91min(takeoffDelay, settings.firstTakeoffMaxTime)
+        : calculateFirstTakeoffPenalty3h(takeoffDelay, settings.firstTakeoffMaxTime),
+    };
+  }
+
+  const safetyRemaining = settings.safetyTime - takeoffDelay;
+  return {
+    earlyTakeoffPenalty: settings.competitionType === '91min'
+      ? calculateEarlyTakeoffPenalty91min(safetyRemaining)
+      : calculateEarlyTakeoffPenalty3h(safetyRemaining),
+    lateRelayPenalty: calculateLateRelayPenalty(
+      takeoffDelay,
+      settings.maxRelayTime,
+      settings.lateRelayPenaltyInterval
+    ),
+  };
+}
+
+// ============ End of Competition ============
+
+/**
+ * Whether the flight was still in progress when the competition ended.
+ */
+export function isFlightInterruptedByCompetitionEnd(competition: Competition, flightIndex: number): boolean {
+  const flight = competition.flights[flightIndex];
+  if (competition.endTimestamp === null || flight.endTimestamp === null) {
+    return false;
+  }
+  if (flight.endedByCompetitionEnd !== undefined) {
+    return flight.endedByCompetitionEnd;
+  }
+  // Recorded before the flag existed: the flight still in progress was closed
+  // with the exact competition end timestamp
+  return flightIndex === competition.flights.length - 1 && flight.endTimestamp === competition.endTimestamp;
+}
+
+/**
+ * When the competition ends while nobody is flying, the takeoff that never happened
+ * is measured from the last landing (or from the start if nobody flew) to the end.
+ * Returns null when the competition is not over or a flight was in progress at the end.
+ */
+export function getMissedTakeoffDelay(competition: Competition): number | null {
+  if (competition.endTimestamp === null || competition.startTimestamp === null) {
+    return null;
+  }
+
+  const lastIndex = competition.flights.length - 1;
+  if (lastIndex < 0) {
+    return competition.endTimestamp - competition.startTimestamp;
+  }
+
+  const lastFlight = competition.flights[lastIndex];
+  if (lastFlight.endTimestamp === null || isFlightInterruptedByCompetitionEnd(competition, lastIndex)) {
+    return null;
+  }
+  return Math.max(0, competition.endTimestamp - lastFlight.endTimestamp);
+}
+
+/**
+ * Late takeoff penalty for the takeoff that never happened before the end.
+ */
+export function calculateMissedTakeoffPenalty(
+  competition: Competition,
+  settings: CompetitionSettings
 ): number {
-  let score = 0;
-  
+  const missedTakeoffDelay = getMissedTakeoffDelay(competition);
+  if (missedTakeoffDelay === null) {
+    return 0;
+  }
+  return calculateTakeoffDelayPenalties(missedTakeoffDelay, competition.flights.length === 0, settings).lateRelayPenalty;
+}
+
+// ============ Flight Score Breakdown ============
+
+export interface FlightScoreBreakdown {
+  flightDurationPenalty: number;
+  earlyTakeoffPenalty: number;
+  lateRelayPenalty: number; // Late relay, or late first takeoff for the first flight
+  tablePoints: number;
+  manualPenalties: number;
+  total: number;
+}
+
+/**
+ * Single source of truth for the points of one flight.
+ */
+export function getFlightScoreBreakdown(
+  competition: Competition,
+  flightIndex: number,
+  settings: CompetitionSettings
+): FlightScoreBreakdown {
+  const flight = competition.flights[flightIndex];
+
   // Flight duration penalty
+  // A flight cut by the end of the competition is never penalized for being short,
+  // only for an overrun that had already started.
+  let flightDurationPenalty = 0;
   if (flight.endTimestamp !== null) {
     const duration = flight.endTimestamp - flight.startTimestamp;
-    score += calculateFlightDurationPenalty(
-      duration,
-      settings.targetFlightDuration,
-      settings.flightDurationPenaltyInterval,
-      settings.flightDurationMaxPenalty
-    );
-  }
-  
-  // Early takeoff penalty
-  if (flight.safetyTimeViolation) {
-    const safetyStart = flight.previousFlightEndTimestamp ?? competitionStartTimestamp;
-    const safetyRemaining = (safetyStart + settings.safetyTime) - flight.startTimestamp;
-    
-    if (settings.competitionType === '91min') {
-      score += calculateEarlyTakeoffPenalty91min(safetyRemaining);
-    } else {
-      score += calculateEarlyTakeoffPenalty3h(safetyRemaining);
-    }
-  }
-  
-  // Late relay penalty
-  if (flight.previousFlightEndTimestamp !== null && !isFirstFlight) {
-    const relayTime = flight.startTimestamp - flight.previousFlightEndTimestamp;
-    if (relayTime > settings.maxRelayTime) {
-      score += calculateLateRelayPenalty(
-        relayTime,
-        settings.maxRelayTime,
-        settings.lateRelayPenaltyInterval
+    const isInterrupted = isFlightInterruptedByCompetitionEnd(competition, flightIndex);
+    if (!isInterrupted || duration > settings.targetFlightDuration) {
+      flightDurationPenalty = calculateFlightDurationPenalty(
+        duration,
+        settings.targetFlightDuration,
+        settings.flightDurationPenaltyInterval,
+        settings.flightDurationMaxPenalty
       );
     }
   }
-  
-  // First takeoff penalty
-  if (isFirstFlight) {
-    const takeoffDelay = flight.startTimestamp - competitionStartTimestamp;
-    if (settings.competitionType === '91min') {
-      score += calculateFirstTakeoffPenalty91min(takeoffDelay, settings.firstTakeoffMaxTime);
-    } else {
-      score += calculateFirstTakeoffPenalty3h(takeoffDelay, settings.firstTakeoffMaxTime);
-    }
+
+  // Early takeoff and late relay (or late first takeoff) penalties
+  let earlyTakeoffPenalty = 0;
+  let lateRelayPenalty = 0;
+  const takeoffDelay = getTakeoffDelay(competition, flightIndex);
+  if (takeoffDelay !== null) {
+    ({ earlyTakeoffPenalty, lateRelayPenalty } = calculateTakeoffDelayPenalties(takeoffDelay, flightIndex === 0, settings));
   }
-  
+
   // Table points (91min only)
-  if (settings.competitionType === '91min') {
-    score += calculateTablePoints(flight.tableAnnounced, flight.tableSuccess);
-  }
-  
+  const tablePoints = settings.competitionType === '91min'
+    ? calculateTablePoints(flight.tableAnnounced, flight.tableSuccess)
+    : 0;
+
   // Manual penalties
-  score += sumManualPenalties(flight.manualPenalties);
-  
-  return score;
+  const manualPenalties = sumManualPenalties(flight.manualPenalties);
+
+  return {
+    flightDurationPenalty,
+    earlyTakeoffPenalty,
+    lateRelayPenalty,
+    tablePoints,
+    manualPenalties,
+    total: flightDurationPenalty + earlyTakeoffPenalty + lateRelayPenalty + tablePoints + manualPenalties,
+  };
 }
 
 // ============ Team Bonuses ============
@@ -227,25 +325,7 @@ export function calculateTotalScore(
   competition: Competition,
   settings: CompetitionSettings
 ): number {
-  let totalScore = 0;
-  
-  // Sum all flight scores
-  competition.flights.forEach((flight, index) => {
-    totalScore += calculateFlightScore(
-      flight,
-      settings,
-      index === 0,
-      competition.startTimestamp ?? 0
-    );
-  });
-  
-  // Add team bonuses (negative points)
-  totalScore += calculateTeamBonuses(team, settings);
-  
-  // Add team penalties
-  totalScore += calculateTeamPenalties(team, competition, settings);
-  
-  return totalScore;
+  return getScoreBreakdown(team, competition, settings).total;
 }
 
 // ============ Score Breakdown ============
@@ -279,63 +359,17 @@ export function getScoreBreakdown(
     total: 0,
   };
 
-  competition.flights.forEach((flight, index) => {
-    const isFirstFlight = index === 0;
-    const startTs = competition.startTimestamp ?? 0;
-
-    // Flight duration penalty
-    if (flight.endTimestamp !== null) {
-      const duration = flight.endTimestamp - flight.startTimestamp;
-      breakdown.flightDurationPenalties += calculateFlightDurationPenalty(
-        duration,
-        settings.targetFlightDuration,
-        settings.flightDurationPenaltyInterval,
-        settings.flightDurationMaxPenalty
-      );
-    }
-
-    // Early takeoff penalty
-    if (flight.safetyTimeViolation) {
-      const safetyStart = flight.previousFlightEndTimestamp ?? startTs;
-      const safetyRemaining = (safetyStart + settings.safetyTime) - flight.startTimestamp;
-
-      if (settings.competitionType === '91min') {
-        breakdown.earlyTakeoffPenalties += calculateEarlyTakeoffPenalty91min(safetyRemaining);
-      } else {
-        breakdown.earlyTakeoffPenalties += calculateEarlyTakeoffPenalty3h(safetyRemaining);
-      }
-    }
-
-    // Late relay penalty
-    if (flight.previousFlightEndTimestamp !== null && !isFirstFlight) {
-      const relayTime = flight.startTimestamp - flight.previousFlightEndTimestamp;
-      if (relayTime > settings.maxRelayTime) {
-        breakdown.lateRelayPenalties += calculateLateRelayPenalty(
-          relayTime,
-          settings.maxRelayTime,
-          settings.lateRelayPenaltyInterval
-        );
-      }
-    }
-
-    // First takeoff late penalty
-    if (isFirstFlight) {
-      const takeoffDelay = flight.startTimestamp - startTs;
-      if (settings.competitionType === '91min') {
-        breakdown.lateRelayPenalties += calculateFirstTakeoffPenalty91min(takeoffDelay, settings.firstTakeoffMaxTime);
-      } else {
-        breakdown.lateRelayPenalties += calculateFirstTakeoffPenalty3h(takeoffDelay, settings.firstTakeoffMaxTime);
-      }
-    }
-
-    // Table points
-    if (settings.competitionType === '91min') {
-      breakdown.tablePoints += calculateTablePoints(flight.tableAnnounced, flight.tableSuccess);
-    }
-
-    // Manual penalties
-    breakdown.manualPenalties += sumManualPenalties(flight.manualPenalties);
+  competition.flights.forEach((_flight, index) => {
+    const flightBreakdown = getFlightScoreBreakdown(competition, index, settings);
+    breakdown.flightDurationPenalties += flightBreakdown.flightDurationPenalty;
+    breakdown.earlyTakeoffPenalties += flightBreakdown.earlyTakeoffPenalty;
+    breakdown.lateRelayPenalties += flightBreakdown.lateRelayPenalty;
+    breakdown.tablePoints += flightBreakdown.tablePoints;
+    breakdown.manualPenalties += flightBreakdown.manualPenalties;
   });
+
+  // Nobody took off after the last landing before the end
+  breakdown.lateRelayPenalties += calculateMissedTakeoffPenalty(competition, settings);
 
   // Team bonuses
   const femalePilots = team.pilots.filter(p => p.isFemale).length;

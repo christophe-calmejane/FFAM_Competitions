@@ -62,6 +62,14 @@ export function getSafetyTimeRemaining(
 }
 
 /**
+ * Round a remaining time up to the next whole second, so a countdown reads
+ * "1 second left" from 1.00s down to 0.01s, and only shows 0 once time is up.
+ */
+export function roundUpToSecond(ms: number): number {
+  return Math.ceil(ms / 1000) * 1000;
+}
+
+/**
  * Format milliseconds to MM:SS
  */
 export function formatTime(ms: number): string {
@@ -98,6 +106,14 @@ export function formatTimePrecise(ms: number): string {
   const seconds = totalSeconds % 60;
   
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${deciseconds}`;
+}
+
+/**
+ * Format milliseconds as seconds with deciseconds (e.g. 41.3)
+ */
+export function formatSecondsPrecise(ms: number): string {
+  const deciseconds = Math.floor(ms / 100);
+  return `${Math.floor(deciseconds / 10)}.${deciseconds % 10}`;
 }
 
 /**
