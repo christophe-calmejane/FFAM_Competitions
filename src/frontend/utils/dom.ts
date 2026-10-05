@@ -63,6 +63,16 @@ export function createElement<K extends keyof HTMLElementTagNameMap>(
   return element;
 }
 
+/**
+ * Set an element's text only when it differs: writing textContent always replaces
+ * the text node, forcing a new layout and paint even for an identical value.
+ */
+export function setTextContent(element: Element, text: string): void {
+  if (element.textContent !== text) {
+    element.textContent = text;
+  }
+}
+
 export function clearElement(element: HTMLElement): void {
   while (element.firstChild) {
     element.removeChild(element.firstChild);

@@ -1,4 +1,4 @@
-import { createElement, clearElement } from '../utils/dom';
+import { createElement, clearElement, setTextContent } from '../utils/dom';
 import { t, getLanguage, getPenaltyName } from '../i18n/translations';
 import { navigate } from '../router/router';
 import { createButton } from '../components/Button';
@@ -20,6 +20,8 @@ import {
   isInSafetyPeriod,
   getSafetyTimeRemaining,
   roundUpToSecond,
+  isNearTargetDuration,
+  getDelayUntilNextStep,
 } from '../../backend/timer/timer';
 import { calculateTotalScore } from '../../backend/scoring/rules';
 import {
@@ -35,10 +37,27 @@ import type { CompetitionType, Team, Competition, Flight, CompetitionSettings, M
 let currentTeam: Team | null = null;
 let currentCompetition: Competition | null = null;
 let currentSettings: CompetitionSettings | null = null;
-let animationFrameId: number | null = null;
-let intervalId: number | null = null;
 let showScores = false;
-let batterySaverMode = false;
+
+// Display refresh loop: at most one pending timeout, set to fire when a displayed
+// value changes next (about once per second), never every frame.
+let updateTimeoutId: number | null = null;
+let updateTick: (() => void) | null = null;
+
+// Wake up just past the step boundary, so the new value is already reached
+const UPDATE_MARGIN_MS = 10;
+
+// Execution stops while hidden anyway: don't refresh, and refresh right away on return
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (updateTimeoutId !== null) {
+      clearTimeout(updateTimeoutId);
+      updateTimeoutId = null;
+    }
+  } else if (updateTick !== null && updateTimeoutId === null) {
+    updateTick();
+  }
+});
 
 export async function renderCompetitionActivePage(
   container: HTMLElement,
@@ -46,15 +65,7 @@ export async function renderCompetitionActivePage(
   teamId: string,
   competitionId: string
 ): Promise<void> {
-  // Cleanup previous animation frame or interval
-  if (animationFrameId !== null) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
-  if (intervalId !== null) {
-    clearInterval(intervalId);
-    intervalId = null;
-  }
+  stopUpdateLoop();
 
   clearElement(container);
 
@@ -78,7 +89,7 @@ export async function renderCompetitionActivePage(
     return;
   }
 
-  const page = createElement('div', { className: `page page-active-competition${batterySaverMode ? ' battery-saver' : ''}` });
+  const page = createElement('div', { className: 'page page-active-competition' });
 
   // Competition timer bar (sticky)
   const timerBar = createElement('div', { className: 'competition-timer-bar' });
@@ -96,36 +107,6 @@ export async function renderCompetitionActivePage(
     textContent: currentTeam.name,
   });
   timerBar.appendChild(teamNameEl);
-
-  // Battery saver toggle
-  const batterySaverBtn = createButton({
-    text: batterySaverMode ? '🔋' : '⚡',
-    variant: batterySaverMode ? 'primary' : 'secondary',
-    size: 'small',
-    onClick: () => {
-      batterySaverMode = !batterySaverMode;
-      // Re-render will happen through navigation or we update button state
-      batterySaverBtn.textContent = batterySaverMode ? '🔋' : '⚡';
-      batterySaverBtn.className = batterySaverMode 
-        ? 'btn btn-primary btn-small' 
-        : 'btn btn-secondary btn-small';
-      batterySaverBtn.title = t('batterySaver') + (batterySaverMode ? ' ✓' : '');
-      // Toggle battery-saver class on page
-      page.classList.toggle('battery-saver', batterySaverMode);
-      // Restart animation loop with new mode
-      if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-      if (intervalId !== null) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
-      startAnimationLoop(container, competitionType);
-    },
-  });
-  batterySaverBtn.title = t('batterySaver') + (batterySaverMode ? ' ✓' : '');
-  timerBar.appendChild(batterySaverBtn);
 
   // Main competition timer
   const competitionTimerContainer = createElement('div', {
@@ -200,6 +181,7 @@ export async function renderCompetitionActivePage(
       remaining: Math.max(0, currentSettings.targetFlightDuration - flightElapsed),
       totalDuration: currentSettings.targetFlightDuration,
       isRunning: true,
+      precise: isNearTargetDuration(flightElapsed, currentSettings.targetFlightDuration),
       size: 'large',
       variant: 'flight',
       label: `${t('currentFlight')} - ${getPilotName(currentFlight.pilotId)}`,
@@ -342,8 +324,7 @@ export async function renderCompetitionActivePage(
   page.appendChild(content);
   container.appendChild(page);
 
-  // Start animation loop
-  startAnimationLoop(container, competitionType);
+  startUpdateLoop(page, container, competitionType);
 }
 
 function getCurrentFlight(): Flight | null {
@@ -591,93 +572,125 @@ async function endCompetition(
   });
 }
 
-function startAnimationLoop(container: HTMLElement, competitionType: CompetitionType): void {
-  function update() {
-    if (!currentCompetition || !currentSettings) return;
+function stopUpdateLoop(): void {
+  if (updateTimeoutId !== null) {
+    clearTimeout(updateTimeoutId);
+    updateTimeoutId = null;
+  }
+  updateTick = null;
+}
 
-    const now = Date.now();
+function startUpdateLoop(page: HTMLElement, container: HTMLElement, competitionType: CompetitionType): void {
+  stopUpdateLoop();
 
-    // Update competition timer
-    const competitionTimerContainer = document.getElementById('competition-timer');
-    if (competitionTimerContainer) {
-      const timerDisplay = competitionTimerContainer.querySelector('.timer-display');
+  const tick = () => {
+    updateTimeoutId = null;
+
+    // Another page replaced this one: stop for good
+    if (!page.isConnected) {
+      stopUpdateLoop();
+      return;
+    }
+
+    const nextDelay = updateDisplay(container, competitionType, Date.now());
+
+    // Page re-rendered or competition ended: the next page starts its own loop if needed
+    if (nextDelay === null) {
+      if (updateTick === tick) stopUpdateLoop();
+      return;
+    }
+
+    // Paused while hidden: the visibilitychange handler resumes it
+    if (document.hidden) return;
+
+    updateTimeoutId = window.setTimeout(tick, nextDelay + UPDATE_MARGIN_MS);
+  };
+
+  updateTick = tick;
+  tick();
+}
+
+/**
+ * Recompute every displayed counter from the timestamps.
+ * Returns the delay until a displayed value changes next, or null when this page
+ * is being replaced (re-render at the end of the safety period, competition end).
+ */
+function updateDisplay(container: HTMLElement, competitionType: CompetitionType, now: number): number | null {
+  if (!currentCompetition || !currentSettings) return null;
+
+  // Competition elapsed/remaining times change on each second since its start
+  const competitionStart = currentCompetition.startTimestamp ?? now;
+  let nextDelay = getDelayUntilNextStep(competitionStart, 1000, now);
+
+  // Update competition timer
+  const competitionTimerContainer = document.getElementById('competition-timer');
+  if (competitionTimerContainer) {
+    const timerDisplay = competitionTimerContainer.querySelector('.timer-display');
+    if (timerDisplay) {
+      const elapsed = now - competitionStart;
+      const remaining = Math.max(0, currentSettings.totalDuration - elapsed);
+
+      updateTimerDisplay(timerDisplay as HTMLElement, elapsed, remaining, true, false);
+
+      // Auto-end competition when time is up
+      if (remaining === 0 && currentCompetition.isActive) {
+        endCompetition(container, competitionType);
+        return null;
+      }
+    }
+  }
+
+  // Update flight timer
+  const currentFlight = getCurrentFlight();
+  if (currentFlight) {
+    const flightTimerContainer = document.getElementById('flight-timer');
+    if (flightTimerContainer) {
+      const timerDisplay = flightTimerContainer.querySelector('.timer-display');
       if (timerDisplay) {
-        const elapsed = now - (currentCompetition.startTimestamp ?? now);
-        const remaining = Math.max(0, currentSettings.totalDuration - elapsed);
-        
-        updateTimerDisplay(timerDisplay as HTMLElement, elapsed, remaining, true, batterySaverMode);
+        const elapsed = now - currentFlight.startTimestamp;
+        const remaining = Math.max(0, currentSettings.targetFlightDuration - elapsed);
+        const precise = isNearTargetDuration(elapsed, currentSettings.targetFlightDuration);
 
-        // Auto-end competition when time is up
-        if (remaining === 0 && currentCompetition.isActive) {
-          endCompetition(container, competitionType);
-          return;
-        }
+        updateTimerDisplay(timerDisplay as HTMLElement, elapsed, remaining, true, precise);
+
+        // Tenths of a second near the target, whole seconds otherwise
+        nextDelay = Math.min(nextDelay, getDelayUntilNextStep(currentFlight.startTimestamp, precise ? 100 : 1000, now));
       }
     }
-
-    // Update flight timer
-    const currentFlight = getCurrentFlight();
-    if (currentFlight) {
-      const flightTimerContainer = document.getElementById('flight-timer');
-      if (flightTimerContainer) {
-        const timerDisplay = flightTimerContainer.querySelector('.timer-display');
-        if (timerDisplay) {
-          const elapsed = now - currentFlight.startTimestamp;
-          const remaining = Math.max(0, currentSettings.targetFlightDuration - elapsed);
-          
-          updateTimerDisplay(timerDisplay as HTMLElement, elapsed, remaining, true, batterySaverMode);
-        }
-      }
-    } else {
-      // Update safety timer
-      const takeoffWindow = getNextTakeoffWindow(currentCompetition, currentSettings);
-      const safetyTimeEl = document.getElementById('safety-time');
-      if (safetyTimeEl) {
-        const safetyRemaining = getSafetyTimeRemaining(takeoffWindow.referenceTimestamp, takeoffWindow.safetyTime, now);
-        
-        safetyTimeEl.textContent = formatTime(roundUpToSecond(safetyRemaining));
-        
-        // Re-render when safety period ends to show relay timer
-        if (safetyRemaining === 0 && currentTeam) {
-          renderCompetitionActivePage(container, competitionType, currentTeam.id, currentCompetition.id);
-          return;
-        }
-      }
-      
-      // Update relay timer (when safety period is over)
-      const relayTimeEl = document.getElementById('relay-time');
-      const relayContainer = document.getElementById('relay-timer-container');
-      if (relayTimeEl && relayContainer) {
-        const timeSinceReference = now - takeoffWindow.referenceTimestamp;
-        const relayTimeExceeded = timeSinceReference > takeoffWindow.maxTime;
-        
-        relayTimeEl.textContent = formatTime(timeSinceReference);
-        
-        // Update color based on whether penalty applies
-        if (relayTimeExceeded) {
-          relayContainer.classList.remove('relay-ok');
-          relayContainer.classList.add('relay-penalty');
-        } else {
-          relayContainer.classList.remove('relay-penalty');
-          relayContainer.classList.add('relay-ok');
-        }
-      }
-    }
-  }
-
-  // Initial update
-  update();
-  
-  // Start the loop based on mode
-  if (batterySaverMode) {
-    // Battery saver: update every 750ms (avoids second skips while saving battery)
-    intervalId = window.setInterval(update, 750);
   } else {
-    // Normal mode: smooth animations with requestAnimationFrame
-    function loop() {
-      update();
-      animationFrameId = requestAnimationFrame(loop);
+    const takeoffWindow = getNextTakeoffWindow(currentCompetition, currentSettings);
+
+    // Safety and relay times change on each second since the reference
+    nextDelay = Math.min(nextDelay, getDelayUntilNextStep(takeoffWindow.referenceTimestamp, 1000, now));
+
+    // Update safety timer
+    const safetyTimeEl = document.getElementById('safety-time');
+    if (safetyTimeEl) {
+      const safetyRemaining = getSafetyTimeRemaining(takeoffWindow.referenceTimestamp, takeoffWindow.safetyTime, now);
+
+      setTextContent(safetyTimeEl, formatTime(roundUpToSecond(safetyRemaining)));
+
+      // Re-render when safety period ends to show relay timer
+      if (safetyRemaining === 0 && currentTeam) {
+        renderCompetitionActivePage(container, competitionType, currentTeam.id, currentCompetition.id);
+        return null;
+      }
     }
-    animationFrameId = requestAnimationFrame(loop);
+
+    // Update relay timer (when safety period is over)
+    const relayTimeEl = document.getElementById('relay-time');
+    const relayContainer = document.getElementById('relay-timer-container');
+    if (relayTimeEl && relayContainer) {
+      const timeSinceReference = now - takeoffWindow.referenceTimestamp;
+      const relayTimeExceeded = timeSinceReference > takeoffWindow.maxTime;
+
+      setTextContent(relayTimeEl, formatTime(timeSinceReference));
+
+      // Update color based on whether penalty applies
+      relayContainer.classList.toggle('relay-penalty', relayTimeExceeded);
+      relayContainer.classList.toggle('relay-ok', !relayTimeExceeded);
+    }
   }
+
+  return nextDelay;
 }

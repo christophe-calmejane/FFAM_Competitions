@@ -1,4 +1,4 @@
-import { createElement } from '../utils/dom';
+import { createElement, setTextContent } from '../utils/dom';
 import { formatTimeLong, formatTimePrecise, roundUpToSecond } from '../../backend/timer/timer';
 
 export interface TimerDisplayProps {
@@ -7,6 +7,7 @@ export interface TimerDisplayProps {
   totalDuration: number;
   isRunning: boolean;
   showRemaining?: boolean;
+  precise?: boolean; // Show tenths of a second on the elapsed time
   size?: 'small' | 'medium' | 'large';
   variant?: 'competition' | 'flight' | 'safety';
   label?: string;
@@ -18,6 +19,7 @@ export function createTimerDisplay(props: TimerDisplayProps): HTMLElement {
     remaining,
     isRunning,
     showRemaining = true,
+    precise = false,
     size = 'medium',
     variant = 'competition',
     label,
@@ -49,7 +51,7 @@ export function createTimerDisplay(props: TimerDisplayProps): HTMLElement {
   });
   const elapsedValueEl = createElement('span', {
     className: 'timer-value',
-    textContent: size === 'large' ? formatTimePrecise(elapsed) : formatTimeLong(elapsed),
+    textContent: precise ? formatTimePrecise(elapsed) : formatTimeLong(elapsed),
   });
   elapsedEl.appendChild(elapsedLabelEl);
   elapsedEl.appendChild(elapsedValueEl);
@@ -84,7 +86,7 @@ export function updateTimerDisplay(
   elapsed: number,
   remaining: number,
   isRunning: boolean,
-  batterySaverMode: boolean = false
+  precise: boolean
 ): void {
   const elapsedValueEl = container.querySelector('.timer-elapsed .timer-value');
   const elapsedEl = container.querySelector('.timer-elapsed');
@@ -92,9 +94,7 @@ export function updateTimerDisplay(
   const remainingEl = container.querySelector('.timer-remaining');
 
   if (elapsedValueEl) {
-    const isLarge = container.classList.contains('timer-large');
-    // In battery saver mode, always use formatTimeLong (no decimals)
-    elapsedValueEl.textContent = (isLarge && !batterySaverMode) ? formatTimePrecise(elapsed) : formatTimeLong(elapsed);
+    setTextContent(elapsedValueEl, precise ? formatTimePrecise(elapsed) : formatTimeLong(elapsed));
   }
 
   // Show exceeded state (orange) when time is exceeded
@@ -103,7 +103,7 @@ export function updateTimerDisplay(
   }
 
   if (remainingValueEl) {
-    remainingValueEl.textContent = formatTimeLong(roundUpToSecond(remaining));
+    setTextContent(remainingValueEl, formatTimeLong(roundUpToSecond(remaining)));
   }
 
   if (remainingEl) {

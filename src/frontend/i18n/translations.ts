@@ -91,7 +91,6 @@ export interface Translations {
   femalePilotBonus: string;
   
   // UI
-  batterySaver: string;
   editFlight: string;
   editFlightDuration: string;
   editTakeoffDelay: string;
@@ -241,7 +240,6 @@ export const translations: Record<Language, Translations> = {
     femalePilotBonus: 'Female Pilot Bonus',
     
     // UI
-    batterySaver: 'Battery Saver',
     editFlight: 'Edit Flight',
     editFlightDuration: 'Flight Duration',
     editTakeoffDelay: 'Takeoff time after the previous landing',
@@ -390,7 +388,6 @@ export const translations: Record<Language, Translations> = {
     femalePilotBonus: 'Bonus pilote féminin',
     
     // UI
-    batterySaver: 'Éco batterie',
     editFlight: 'Modifier le vol',
     editFlightDuration: 'Durée du vol',
     editTakeoffDelay: 'Temps de décollage après le posé précédent',

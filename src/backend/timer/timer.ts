@@ -117,33 +117,22 @@ export function formatSecondsPrecise(ms: number): string {
 }
 
 /**
- * Create an animation frame based timer that recomputes from timestamps
- * Returns a cleanup function
+ * Tenths of a second only matter close to the target flight duration, where they
+ * decide the duration penalty. Elsewhere whole seconds are enough, and refreshing
+ * the display once per second instead of ten times saves battery.
  */
-export function createTimerDisplay(
-  getState: () => TimerState,
-  onUpdate: (elapsed: number, remaining: number, totalDuration: number) => void,
-  totalDuration: number
-): () => void {
-  let animationId: number | null = null;
-  
-  function update() {
-    const state = getState();
-    const elapsed = getElapsedTime(state);
-    const remaining = getRemainingTime(state, totalDuration);
-    
-    onUpdate(elapsed, remaining, totalDuration);
-    
-    if (state.isRunning) {
-      animationId = requestAnimationFrame(update);
-    }
-  }
-  
-  animationId = requestAnimationFrame(update);
-  
-  return () => {
-    if (animationId !== null) {
-      cancelAnimationFrame(animationId);
-    }
-  };
+export const PRECISE_DISPLAY_WINDOW_MS = 30 * 1000;
+
+export function isNearTargetDuration(elapsed: number, targetDuration: number): boolean {
+  return Math.abs(targetDuration - elapsed) <= PRECISE_DISPLAY_WINDOW_MS;
+}
+
+/**
+ * Delay until a counter started at `origin` reaches its next multiple of `stepMs`,
+ * i.e. until its displayed value changes. Always in ]0, stepMs].
+ * Lets the display wake up only when something visible changes.
+ */
+export function getDelayUntilNextStep(origin: number, stepMs: number, now: number = Date.now()): number {
+  const elapsedInStep = (((now - origin) % stepMs) + stepMs) % stepMs;
+  return stepMs - elapsedInStep;
 }

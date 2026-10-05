@@ -10,6 +10,8 @@ import {
   formatTimePrecise,
   formatSecondsPrecise,
   roundUpToSecond,
+  isNearTargetDuration,
+  getDelayUntilNextStep,
 } from '../src/backend/timer/timer';
 import type { TimerState } from '../src/backend/timer/timer';
 
@@ -219,5 +221,34 @@ describe('roundUpToSecond', () => {
     const elapsed = 117_100; // 01:57.1
     expect(formatTime(elapsed)).toBe('01:57');
     expect(formatTime(roundUpToSecond(total - elapsed))).toBe('08:03');
+  });
+});
+
+describe('isNearTargetDuration', () => {
+  const target = 10 * 60 * 1000;
+
+  it('should be true within 30 seconds of the target, before or after', () => {
+    expect(isNearTargetDuration(target - 30_000, target)).toBe(true);
+    expect(isNearTargetDuration(target, target)).toBe(true);
+    expect(isNearTargetDuration(target + 30_000, target)).toBe(true);
+  });
+
+  it('should be false further from the target', () => {
+    expect(isNearTargetDuration(target - 30_001, target)).toBe(false);
+    expect(isNearTargetDuration(target + 30_001, target)).toBe(false);
+    expect(isNearTargetDuration(0, target)).toBe(false);
+  });
+});
+
+describe('getDelayUntilNextStep', () => {
+  it('should return the delay until the counter reaches its next step', () => {
+    expect(getDelayUntilNextStep(1000, 1000, 1000)).toBe(1000);
+    expect(getDelayUntilNextStep(1000, 1000, 1001)).toBe(999);
+    expect(getDelayUntilNextStep(1000, 1000, 2999)).toBe(1);
+    expect(getDelayUntilNextStep(1000, 100, 1250)).toBe(50);
+  });
+
+  it('should handle a counter that has not started yet', () => {
+    expect(getDelayUntilNextStep(5000, 1000, 4700)).toBe(300);
   });
 });
