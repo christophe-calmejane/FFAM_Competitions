@@ -101,6 +101,15 @@ export interface Translations {
   missedTakeoff: string;
   durationMinutes: string;
   durationSeconds: string;
+  resumeFlight: string;
+  resume: string;
+  confirmResumeFlightTitle: string;
+  confirmResumeFlight: string;
+  mergeFlights: string;
+  merge: string;
+  confirmMergeFlightsTitle: string;
+  confirmMergeFlights: string;
+  mergeFlightsPoints: string;
   
   // Results
   results: string;
@@ -242,6 +251,15 @@ export const translations: Record<Language, Translations> = {
     missedTakeoff: 'No takeoff before the end',
     durationMinutes: 'Minutes',
     durationSeconds: 'Seconds',
+    resumeFlight: 'Resume flight',
+    resume: 'Resume',
+    confirmResumeFlightTitle: 'Resume flight #{number}?',
+    confirmResumeFlight: 'Was flight #{number} ({pilot}) stopped by mistake? It continues as if it had never been stopped: its timer keeps running from its takeoff.',
+    mergeFlights: 'Merge #{first} and #{second}',
+    merge: 'Merge',
+    confirmMergeFlightsTitle: 'Merge flights',
+    confirmMergeFlights: 'Flights #{first} and #{second} ({pilot}) become a single {duration} flight, from the takeoff of #{first} to the landing of #{second}: the time on the ground in between counts as flight time.',
+    mergeFlightsPoints: 'Points for these flights: {before} → {after}',
     
     // Results
     results: 'Results',
@@ -382,6 +400,15 @@ export const translations: Record<Language, Translations> = {
     missedTakeoff: 'Pas de décollage avant la fin',
     durationMinutes: 'Minutes',
     durationSeconds: 'Secondes',
+    resumeFlight: 'Reprendre le vol',
+    resume: 'Reprendre',
+    confirmResumeFlightTitle: 'Reprendre le vol #{number} ?',
+    confirmResumeFlight: "Le vol #{number} ({pilot}) a été arrêté par erreur ? Il continue comme s'il n'avait jamais été arrêté : son chrono repart depuis son décollage.",
+    mergeFlights: 'Fusionner #{first} et #{second}',
+    merge: 'Fusionner',
+    confirmMergeFlightsTitle: 'Fusionner les vols',
+    confirmMergeFlights: 'Les vols #{first} et #{second} ({pilot}) deviennent un seul vol de {duration}, du décollage du #{first} au posé du #{second} : le temps au sol entre les deux compte comme du vol.',
+    mergeFlightsPoints: 'Points de ces vols : {before} → {after}',
     
     // Results
     results: 'Résultats',
@@ -438,7 +465,7 @@ export function t(key: keyof Translations, params?: Record<string, string | numb
   
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
-      text = text.replace(`{${k}}`, String(v));
+      text = text.replaceAll(`{${k}}`, String(v));
     });
   }
   

@@ -3,6 +3,7 @@ import { t, getLanguage, getPenaltyName } from '../i18n/translations';
 import { navigate } from '../router/router';
 import { createButton } from '../components/Button';
 import { showEditFlightModal } from '../components/Modal';
+import { createMergeFlightsRow } from '../components/MergeFlightsRow';
 import {
   getTeam,
   getCompetition,
@@ -20,7 +21,7 @@ import {
   calculateMissedTakeoffPenalty,
 } from '../../backend/scoring/rules';
 import type { FlightScoreBreakdown } from '../../backend/scoring/rules';
-import { applyFlightEdit } from '../../backend/competition/competition';
+import { applyFlightEdit, canMergeWithNextFlight, mergeWithNextFlight } from '../../backend/competition/competition';
 import type { FlightEdit } from '../../backend/competition/competition';
 import type { CompetitionType, CompetitionSettings, Flight } from '../../backend/types/index.js';
 
@@ -228,6 +229,13 @@ export async function renderResultsPage(
     renderResultsPage(container, competitionType, teamId, competitionId);
   };
 
+  const handleMergeFlights = async (flightId: string): Promise<void> => {
+    if (!mergeWithNextFlight(competition, flightId)) return;
+
+    await saveCompetition(competition);
+    renderResultsPage(container, competitionType, teamId, competitionId);
+  };
+
   let totalTakeoffDelayMs = 0;
   let totalFlightTimeMs = 0;
   let totalFlightPoints = 0;
@@ -283,6 +291,16 @@ export async function renderResultsPage(
     }
 
     flightsTable.appendChild(flightEntry);
+
+    if (canMergeWithNextFlight(competition, index)) {
+      flightsTable.appendChild(createMergeFlightsRow({
+        competition,
+        settings,
+        flightIndex: index,
+        pilotName: pilot?.name ?? '?',
+        onMerge: handleMergeFlights,
+      }));
+    }
   });
 
   // Nobody took off between the last landing and the end

@@ -879,6 +879,13 @@ body {
   font-size: var(--font-size-xl);
 }
 
+/* Resume a flight stopped by mistake (kept apart from the pilot buttons) */
+.resume-flight-section {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-md);
+}
+
 /* Score Section */
 .score-section {
   display: flex;
@@ -1444,6 +1451,7 @@ body {
   font-size: var(--font-size-base);
   color: var(--text-secondary);
   line-height: 1.5;
+  white-space: pre-line;
 }
 
 .modal-footer {
@@ -1543,4 +1551,28 @@ body {
 
 .flight-edit-btn:hover {
   color: var(--color-primary);
+}
+
+/* Merge two consecutive flights of the same pilot */
+.flight-merge-row {
+  display: flex;
+  justify-content: center;
+  padding: var(--spacing-xs) 0;
+}
+
+.flight-merge-btn {
+  background: transparent;
+  border: 1px dashed var(--color-primary);
+  border-radius: 999px;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  padding: var(--spacing-sm) var(--spacing-md);
+  transition: background-color var(--transition-fast);
+}
+
+.flight-merge-btn:hover {
+  background-color: rgba(26, 115, 232, 0.1);
 }

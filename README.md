@@ -19,6 +19,7 @@ Application PWA de chronométrage et de calcul des scores pour les compétitions
 - ⏱️ **Chronométrage en temps réel** des vols et des temps de sécurité
 - 📊 **Calcul automatique** des pénalités (durée de vol, décollage anticipé, relais tardif)
 - ✅ **Pénalités manuelles** pour les infractions observées par le juge
+- ✏️ **Corrections** : modification des temps d'un vol, reprise d'un vol arrêté par erreur, fusion de deux vols consécutifs d'un même pilote
 - 🏆 **Résumé détaillé** des scores en fin de compétition
 - 🌐 **Bilingue** français/anglais
 - 🌙 **Thème clair/sombre**

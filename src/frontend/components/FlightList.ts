@@ -5,12 +5,14 @@ import { formatTime } from '../../backend/timer/timer';
 import { t, getLanguage, getPenaltyName } from '../i18n/translations';
 import { createButton } from './Button';
 import { showEditFlightModal } from './Modal';
+import { createMergeFlightsRow } from './MergeFlightsRow';
 import {
   getFlightScoreBreakdown,
   getTakeoffDelay,
   calculateTablePoints,
   sumManualPenalties,
 } from '../../backend/scoring/rules';
+import { canMergeWithNextFlight } from '../../backend/competition/competition';
 
 export interface FlightListHandlers {
   onAddPenalty: (flightId: string, penaltyId: string) => void;
@@ -18,6 +20,7 @@ export interface FlightListHandlers {
   onTableAnnouncedChange: (flightId: string, announced: boolean) => void;
   onTableSuccessChange: (flightId: string, success: boolean | null) => void;
   onEditFlight?: (flightId: string, edit: FlightEdit) => void;
+  onMergeFlights?: (flightId: string) => void; // Merge a flight with the next one
 }
 
 export interface FlightListItemProps extends FlightListHandlers {
@@ -271,6 +274,17 @@ export function createFlightList(
     });
 
     list.appendChild(item);
+
+    // Newest first: the previous flight is shown just below this one
+    if (handlers.onMergeFlights && canMergeWithNextFlight(competition, flightIndex - 1)) {
+      list.appendChild(createMergeFlightsRow({
+        competition,
+        settings,
+        flightIndex: flightIndex - 1,
+        pilotName: pilot.name,
+        onMerge: handlers.onMergeFlights,
+      }));
+    }
   });
 
   if (flights.length === 0) {

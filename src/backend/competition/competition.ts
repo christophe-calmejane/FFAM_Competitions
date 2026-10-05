@@ -76,3 +76,86 @@ export function applyFlightEdit(
   flight.duration = flight.endTimestamp - flight.startTimestamp;
   return true;
 }
+
+// ============ Flight Resuming ============
+
+/**
+ * Whether the last flight can be resumed after it was stopped by mistake:
+ * the competition is running, the last flight has landed and nobody took off since.
+ */
+export function canResumeLastFlight(competition: Competition): boolean {
+  const lastFlight = competition.flights[competition.flights.length - 1];
+  return competition.isActive
+    && competition.endTimestamp === null
+    && lastFlight !== undefined
+    && lastFlight.endTimestamp !== null;
+}
+
+/**
+ * Resume the last flight after it was stopped by mistake: it continues as if it had
+ * never landed, its timer still running from its takeoff.
+ * Returns false when there is no flight to resume.
+ */
+export function resumeLastFlight(competition: Competition): boolean {
+  if (!canResumeLastFlight(competition)) {
+    return false;
+  }
+
+  const lastFlight = competition.flights[competition.flights.length - 1];
+  lastFlight.endTimestamp = null;
+  lastFlight.duration = 0;
+
+  competition.currentFlightId = lastFlight.id;
+  competition.safetyPeriodEndTimestamp = null; // No safety period while flying
+  return true;
+}
+
+// ============ Flight Merging ============
+
+/**
+ * Whether a flight can be merged with the next one: both have landed and were flown
+ * by the same pilot (typically a flight stopped by mistake, then restarted).
+ */
+export function canMergeWithNextFlight(competition: Competition, flightIndex: number): boolean {
+  const flight = competition.flights[flightIndex];
+  const nextFlight = competition.flights[flightIndex + 1];
+  return flight !== undefined
+    && nextFlight !== undefined
+    && flight.endTimestamp !== null
+    && nextFlight.endTimestamp !== null
+    && flight.pilotId === nextFlight.pilotId;
+}
+
+/**
+ * Merge a flight with the next one into a single flight, from the first takeoff to
+ * the second landing: the time spent on the ground in between counts as flight time,
+ * and the second takeoff disappears along with its penalties.
+ * Manual penalties of both flights are kept. Other flights are never affected.
+ * Returns false when the flights cannot be merged.
+ */
+export function mergeWithNextFlight(competition: Competition, flightId: string): boolean {
+  const flightIndex = competition.flights.findIndex(f => f.id === flightId);
+  if (flightIndex < 0 || !canMergeWithNextFlight(competition, flightIndex)) {
+    return false;
+  }
+
+  const flight = competition.flights[flightIndex];
+  const nextFlight = competition.flights[flightIndex + 1];
+
+  flight.endTimestamp = nextFlight.endTimestamp!; // Checked by canMergeWithNextFlight
+  flight.duration = flight.endTimestamp - flight.startTimestamp;
+  flight.endedByCompetitionEnd = nextFlight.endedByCompetitionEnd;
+  flight.manualPenalties = [...flight.manualPenalties, ...nextFlight.manualPenalties];
+
+  // A flight has a single table announcement: the latest one wins
+  if (nextFlight.tableAnnounced) {
+    flight.tableAnnounced = true;
+    flight.tableSuccess = nextFlight.tableSuccess;
+  }
+
+  competition.flights.splice(flightIndex + 1, 1);
+  competition.flights.forEach((f, index) => {
+    f.flightNumber = index + 1;
+  });
+  return true;
+}

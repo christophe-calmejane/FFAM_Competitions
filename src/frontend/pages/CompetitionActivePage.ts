@@ -22,7 +22,13 @@ import {
   roundUpToSecond,
 } from '../../backend/timer/timer';
 import { calculateTotalScore } from '../../backend/scoring/rules';
-import { applyFlightEdit, finishCompetition } from '../../backend/competition/competition';
+import {
+  applyFlightEdit,
+  finishCompetition,
+  canResumeLastFlight,
+  resumeLastFlight,
+  mergeWithNextFlight,
+} from '../../backend/competition/competition';
 import type { FlightEdit } from '../../backend/competition/competition';
 import type { CompetitionType, Team, Competition, Flight, CompetitionSettings, ManualPenalty } from '../../backend/types/index.js';
 
@@ -258,6 +264,30 @@ export async function renderCompetitionActivePage(
   pilotsSection.appendChild(pilotsGrid);
   content.appendChild(pilotsSection);
 
+  // Resume the last flight after a stop by mistake (kept apart from the pilot buttons)
+  if (canResumeLastFlight(currentCompetition)) {
+    const lastFlightNumber = currentCompetition.flights.length;
+    const lastFlight = currentCompetition.flights[lastFlightNumber - 1];
+
+    const resumeSection = createElement('div', { className: 'resume-flight-section' });
+    resumeSection.appendChild(createButton({
+      text: `↩️ ${t('resumeFlight')}`,
+      variant: 'secondary',
+      size: 'medium',
+      className: 'resume-flight-btn',
+      onClick: () => {
+        showConfirmModal({
+          title: t('confirmResumeFlightTitle', { number: lastFlightNumber }),
+          message: t('confirmResumeFlight', { number: lastFlightNumber, pilot: getPilotName(lastFlight.pilotId) }),
+          confirmText: t('resume'),
+          variant: 'warning',
+          onConfirm: () => handleResumeFlight(container, competitionType),
+        });
+      },
+    }));
+    content.appendChild(resumeSection);
+  }
+
   // Score section (toggleable)
   const scoreSection = createElement('div', { className: 'score-section' });
   
@@ -302,6 +332,7 @@ export async function renderCompetitionActivePage(
       onTableAnnouncedChange: (flightId, announced) => handleTableAnnouncedChange(container, competitionType, flightId, announced),
       onTableSuccessChange: (flightId, success) => handleTableSuccessChange(container, competitionType, flightId, success),
       onEditFlight: (flightId, edit) => handleEditFlight(container, competitionType, flightId, edit),
+      onMergeFlights: (flightId) => handleMergeFlights(container, competitionType, flightId),
     }
   );
   flightsSection.appendChild(flightList);
@@ -510,6 +541,32 @@ async function handleEditFlight(
   if (!currentCompetition || !currentTeam) return;
 
   if (!applyFlightEdit(currentCompetition, flightId, edit)) return;
+
+  await saveCompetition(currentCompetition);
+  renderCompetitionActivePage(container, competitionType, currentTeam.id, currentCompetition.id);
+}
+
+async function handleResumeFlight(
+  container: HTMLElement,
+  competitionType: CompetitionType
+): Promise<void> {
+  if (!currentCompetition || !currentTeam) return;
+
+  // Refused if a flight started or the competition ended while confirming
+  if (!resumeLastFlight(currentCompetition)) return;
+
+  await saveCompetition(currentCompetition);
+  renderCompetitionActivePage(container, competitionType, currentTeam.id, currentCompetition.id);
+}
+
+async function handleMergeFlights(
+  container: HTMLElement,
+  competitionType: CompetitionType,
+  flightId: string
+): Promise<void> {
+  if (!currentCompetition || !currentTeam) return;
+
+  if (!mergeWithNextFlight(currentCompetition, flightId)) return;
 
   await saveCompetition(currentCompetition);
   renderCompetitionActivePage(container, competitionType, currentTeam.id, currentCompetition.id);
