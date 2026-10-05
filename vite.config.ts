@@ -1,12 +1,34 @@
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+/**
+ * App version: major.minor come from package.json (bump them by hand for big changes),
+ * the last number is the git commit count, so each commit gets a new version on its own.
+ */
+function getAppVersion(): string {
+  const { version } = JSON.parse(readFileSync('./package.json', 'utf-8')) as { version: string };
+  const [major, minor] = version.split('.');
+  let commitCount = '0';
+  try {
+    commitCount = execSync('git rev-list --count HEAD').toString().trim();
+  } catch {
+    // Not built from a git checkout: keep 0
+  }
+  return `${major}.${minor}.${commitCount}`;
+}
+
 export default defineConfig({
   base: '/FFAM_Competitions/',
+  define: {
+    __APP_VERSION__: JSON.stringify(getAppVersion()),
+  },
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      // A new version waits until the user applies it from the update banner
+      registerType: 'prompt',
+      injectRegister: false, // Registered by the app (UpdateBanner.ts)
       manifest: {
         name: 'FFAM Competitions',
         short_name: 'FFAM',
@@ -29,10 +51,11 @@ export default defineConfig({
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png',
+            // Same scene with extra margin, so round launcher masks keep both aircraft whole
+            src: 'maskable-icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'maskable'
           }
         ]
       },

@@ -1,16 +1,169 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1a73e8"/>
-      <stop offset="100%" style="stop-color:#4285f4"/>
+    <linearGradient id="sky" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="640">
+      <stop offset="0" stop-color="#1C74DE"/>
+      <stop offset="0.5" stop-color="#4FA9F2"/>
+      <stop offset="0.85" stop-color="#A8DCF8"/>
+      <stop offset="1" stop-color="#DDF4FD"/>
+    </linearGradient>
+
+    <radialGradient id="sunGlow" gradientUnits="userSpaceOnUse" cx="205" cy="200" r="300">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.85"/>
+      <stop offset="0.25" stop-color="#FFFFFF" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="farLand" gradientUnits="userSpaceOnUse" x1="0" y1="580" x2="0" y2="700">
+      <stop offset="0" stop-color="#9BD6BE"/>
+      <stop offset="1" stop-color="#7CC59A"/>
+    </linearGradient>
+
+    <linearGradient id="strip" gradientUnits="userSpaceOnUse" x1="0" y1="715" x2="0" y2="830">
+      <stop offset="0" stop-color="#A9E066"/>
+      <stop offset="1" stop-color="#8CCB4C"/>
+    </linearGradient>
+
+    <linearGradient id="meadow" gradientUnits="userSpaceOnUse" x1="0" y1="810" x2="0" y2="1024">
+      <stop offset="0" stop-color="#43A047"/>
+      <stop offset="1" stop-color="#2E7D32"/>
+    </linearGradient>
+
+    <g id="cloud">
+      <g fill="#CFE6F8" transform="translate(0,9)">
+        <circle cx="-62" cy="0" r="38"/>
+        <circle cx="-8" cy="-22" r="52"/>
+        <circle cx="52" cy="-4" r="40"/>
+        <circle cx="98" cy="12" r="26"/>
+        <rect x="-100" y="0" width="226" height="40" rx="20"/>
+      </g>
+      <g fill="#FFFFFF">
+        <circle cx="-62" cy="0" r="38"/>
+        <circle cx="-8" cy="-22" r="52"/>
+        <circle cx="52" cy="-4" r="40"/>
+        <circle cx="98" cy="12" r="26"/>
+        <rect x="-100" y="0" width="226" height="40" rx="20"/>
+      </g>
+    </g>
+
+    <!-- Plane -->
+    <clipPath id="planeBody">
+      <path d="M 150,2 C 150,-14 136,-24 116,-28 L 78,-36 C 66,-52 40,-58 18,-56 C -10,-56 -40,-46 -70,-34 L -128,-20 L -150,-14 L -150,-2 L -128,6 C -90,18 -20,28 40,28 C 90,28 144,22 150,2 Z"/>
+    </clipPath>
+
+    <!-- Glider -->
+    <clipPath id="gliderBody">
+      <path d="M 170,2 C 170,-10 158,-18 140,-20 L 104,-24 C 90,-42 56,-48 30,-36 C 20,-31 14,-27 6,-24 L -92,-17 L -166,-24 L -170,-12 L -92,-4 C -40,6 40,11 100,11 C 140,11 170,10 170,2 Z"/>
+    </clipPath>
+    <linearGradient id="gNearTip" gradientUnits="userSpaceOnUse" x1="16" y1="-27" x2="-118" y2="46">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.78" stop-color="#FFFFFF"/>
+      <stop offset="0.78" stop-color="#FF8A1F"/>
+      <stop offset="1" stop-color="#FF8A1F"/>
+    </linearGradient>
+    <linearGradient id="gFarTip" gradientUnits="userSpaceOnUse" x1="40" y1="-30" x2="122" y2="-128">
+      <stop offset="0" stop-color="#F1F5FA"/>
+      <stop offset="0.78" stop-color="#F1F5FA"/>
+      <stop offset="0.78" stop-color="#F27A12"/>
+      <stop offset="1" stop-color="#F27A12"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="64" fill="url(#bg)"/>
-  <g fill="white">
-    <!-- Airplane silhouette -->
-    <path d="M256 80 L290 180 L420 200 L290 220 L256 320 L222 220 L92 200 L222 180 Z" opacity="0.9"/>
-    <!-- Timer circle -->
-    <circle cx="256" cy="350" r="80" fill="none" stroke="white" stroke-width="8"/>
-    <path d="M256 290 L256 350 L300 320" stroke="white" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Sky -->
+  <rect width="1024" height="1024" fill="url(#sky)"/>
+  <circle cx="205" cy="200" r="300" fill="url(#sunGlow)"/>
+  <circle cx="205" cy="200" r="70" fill="#FFD43B"/>
+  <circle cx="205" cy="200" r="54" fill="#FFE680"/>
+
+  <!-- Clouds -->
+  <use href="#cloud" transform="translate(770,205) scale(1.1)"/>
+  <use href="#cloud" transform="translate(440,345) scale(0.78)"/>
+  <use href="#cloud" transform="translate(905,430) scale(0.5)"/>
+  <use href="#cloud" transform="translate(95,455) scale(0.45)"/>
+
+  <!-- Earth curvature -->
+  <circle cx="512" cy="2100" r="1550" fill="#EAF8FF" opacity="0.35"/>
+  <circle cx="512" cy="2100" r="1525" fill="#EAF8FF" opacity="0.5"/>
+  <circle cx="512" cy="2100" r="1512" fill="url(#farLand)"/>
+  <circle cx="512" cy="2100" r="1475" fill="#6DBE7A"/>
+  <circle cx="512" cy="2100" r="1420" fill="#4BA64A"/>
+  <circle cx="512" cy="2100" r="1385" fill="url(#strip)"/>
+  <circle cx="512" cy="2100" r="1385" fill="none" stroke="#C6EE98" stroke-width="4"/>
+  <circle cx="512" cy="2100" r="1337" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="5" stroke-dasharray="46 34"/>
+  <circle cx="512" cy="2100" r="1290" fill="url(#meadow)"/>
+
+  <!-- Shadows -->
+  <ellipse cx="292" cy="806" rx="170" ry="13" fill="#1B5E20" opacity="0.3" transform="rotate(-8 292 806)"/>
+  <ellipse cx="728" cy="790" rx="200" ry="12" fill="#1B5E20" opacity="0.26" transform="rotate(7 728 790)"/>
+
+  <!-- Foreground tufts -->
+  <g stroke="#2E7D32" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.9">
+    <path d="M130,940 l-8,-22 m8,22 l0,-28 m0,28 l9,-22"/>
+    <path d="M330,985 l-8,-22 m8,22 l0,-28 m0,28 l9,-22"/>
+    <path d="M560,930 l-8,-22 m8,22 l0,-28 m0,28 l9,-22"/>
+    <path d="M790,975 l-8,-22 m8,22 l0,-28 m0,28 l9,-22"/>
+    <path d="M930,925 l-8,-22 m8,22 l0,-28 m0,28 l9,-22"/>
+  </g>
+
+  <!-- PLANE (taking off, heading left) -->
+  <g transform="translate(265,695) rotate(3) scale(-1.2,1.2)" stroke="#26243A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- far stabilizer -->
+    <path d="M -118,-12 L -148,-16 L -128,-44 L -104,-36 Z" fill="#C92B2F"/>
+    <!-- far wing -->
+    <path d="M 58,-4 L 106,-62 Q 114,-72 100,-78 L 66,-82 Q 56,-84 50,-76 L -16,-8 Z" fill="#CF2D32"/>
+    <!-- fin -->
+    <path d="M -100,-26 C -116,-50 -130,-72 -138,-88 L -160,-84 L -156,-14 Z" fill="#E8383D"/>
+    <!-- fuselage -->
+    <path d="M 150,2 C 150,-14 136,-24 116,-28 L 78,-36 C 66,-52 40,-58 18,-56 C -10,-56 -40,-46 -70,-34 L -128,-20 L -150,-14 L -150,-2 L -128,6 C -90,18 -20,28 40,28 C 90,28 144,22 150,2 Z" fill="#E8383D"/>
+    <g clip-path="url(#planeBody)" stroke="none">
+      <path d="M -160,10 C -60,22 60,24 160,8 L 160,50 L -160,50 Z" fill="#FFFFFF"/>
+    </g>
+    <path d="M 150,2 C 150,-14 136,-24 116,-28 L 78,-36 C 66,-52 40,-58 18,-56 C -10,-56 -40,-46 -70,-34 L -128,-20 L -150,-14 L -150,-2 L -128,6 C -90,18 -20,28 40,28 C 90,28 144,22 150,2 Z" fill="none"/>
+    <!-- windows -->
+    <path d="M 78,-34 L 62,-51 C 58,-55 50,-55 47,-51 L 50,-33 Z" fill="#CFEBFA"/>
+    <path d="M 40,-33 L 36,-51 C 34,-54 22,-54 19,-51 L 15,-33 Z" fill="#CFEBFA"/>
+    <!-- near stabilizer -->
+    <path d="M -112,4 L -150,2 L -192,34 L -176,42 Z" fill="#FFFFFF"/>
+    <path d="M -112,-2 L -150,-4 L -192,26 L -176,34 Z" fill="#E8383D"/>
+    <!-- near wing -->
+    <path d="M 50,21 L -66,76 Q -76,82 -90,74 L -102,62 Q -104,56 -96,52 L -18,23 Z" fill="#FFFFFF"/>
+    <path d="M 50,12 L -66,67 Q -76,73 -90,65 L -102,53 Q -104,47 -96,43 L -18,14 Z" fill="#E8383D"/>
+    <!-- landing gear -->
+    <path d="M 24,26 L 30,52" fill="none" stroke-width="6"/>
+    <circle cx="30" cy="60" r="13" fill="#3A3A4A"/>
+    <circle cx="30" cy="60" r="5" fill="#B8BDC6" stroke="none"/>
+    <path d="M 112,24 L 116,50" fill="none" stroke-width="6"/>
+    <circle cx="116" cy="58" r="11" fill="#3A3A4A"/>
+    <circle cx="116" cy="58" r="4" fill="#B8BDC6" stroke="none"/>
+    <!-- propeller -->
+    <ellipse cx="156" cy="-4" rx="14" ry="60" fill="#FFFFFF" opacity="0.28" stroke="none"/>
+    <ellipse cx="156" cy="-38" rx="7" ry="28" fill="#8E949F"/>
+    <ellipse cx="156" cy="32" rx="7" ry="28" fill="#8E949F"/>
+    <ellipse cx="152" cy="-4" rx="9" ry="13" fill="#A9AEB8"/>
+  </g>
+
+  <!-- GLIDER (flaring, heading left) -->
+  <g transform="translate(722,696) rotate(10) scale(-1.05,1.05)" stroke="#26243A" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- far stabilizer -->
+    <path d="M -150,-78 L -182,-76 L -160,-104 L -140,-98 Z" fill="#E9EEF5"/>
+    <!-- far wing -->
+    <path d="M 50,-30 Q 96,-72 126,-120 Q 130,-130 118,-132 L 96,-134 Q 46,-92 -18,-30 Z" fill="url(#gFarTip)"/>
+    <!-- fin -->
+    <path d="M -128,-18 L -156,-80 L -178,-78 L -170,-16 Z" fill="#FFFFFF"/>
+    <!-- fuselage -->
+    <path d="M 170,2 C 170,-10 158,-18 140,-20 L 104,-24 C 90,-42 56,-48 30,-36 C 20,-31 14,-27 6,-24 L -92,-17 L -166,-24 L -170,-12 L -92,-4 C -40,6 40,11 100,11 C 140,11 170,10 170,2 Z" fill="#FFFFFF"/>
+    <g clip-path="url(#gliderBody)" stroke="none">
+      <rect x="134" y="-40" width="50" height="60" fill="#FF8A1F"/>
+      <path d="M -180,0 L 180,0 L 180,20 L -180,20 Z" fill="#D9E3EE" opacity="0.7"/>
+    </g>
+    <path d="M 170,2 C 170,-10 158,-18 140,-20 L 104,-24 C 90,-42 56,-48 30,-36 C 20,-31 14,-27 6,-24 L -92,-17 L -166,-24 L -170,-12 L -92,-4 C -40,6 40,11 100,11 C 140,11 170,10 170,2 Z" fill="none"/>
+    <!-- canopy -->
+    <path d="M 108,-23 C 94,-40 62,-46 34,-34 L 44,-23 Z" fill="#BFE3F7"/>
+    <!-- T-tail stabilizer (near) -->
+    <path d="M -150,-76 L -182,-74 L -222,-46 L -202,-38 Z" fill="#FFFFFF"/>
+    <!-- near wing -->
+    <path d="M 50,-20 Q -16,10 -92,48 Q -106,58 -122,60 Q -130,58 -126,50 L -112,36 Q -52,14 -18,-18 Z" fill="#C9D6E4"/>
+    <path d="M 50,-28 Q -16,2 -92,40 Q -106,50 -122,52 Q -130,50 -126,42 L -112,28 Q -52,6 -18,-26 Z" fill="url(#gNearTip)"/>
+    <!-- belly wheel -->
+    <circle cx="46" cy="17" r="7" fill="#3A3A4A"/>
   </g>
 </svg>

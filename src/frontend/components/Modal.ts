@@ -347,12 +347,15 @@ export function showEditFlightModal(options: EditFlightModalOptions): void {
   document.body.appendChild(backdrop);
   currentModal = backdrop;
 
-  // Add animation class after append
+  // Focus right away, still within the tap that opened the modal:
+  // iOS only opens the keyboard for a focus() made during a user gesture
   const firstInput = takeoffInput ?? minutesInput;
+  firstInput.focus();
+  firstInput.select();
+
+  // Add animation class after append
   requestAnimationFrame(() => {
     backdrop.classList.add('modal-visible');
-    firstInput.focus();
-    firstInput.select();
   });
 
   // Escape cancels, Enter saves

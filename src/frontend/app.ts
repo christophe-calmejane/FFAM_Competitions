@@ -3,6 +3,7 @@ import type { Route } from './router/router';
 import { setLanguage } from './i18n/translations';
 import { setTheme } from './theme/theme';
 import { getAppSettings } from '../backend/database/db';
+import { initAppUpdate, renderUpdateBanner } from './components/UpdateBanner';
 
 // Import pages
 import { renderHomePage } from './pages/HomePage';
@@ -36,14 +37,8 @@ export async function initApp(): Promise<void> {
   // Render initial route
   handleRouteChange(getCurrentRoute());
 
-  // Register PWA service worker (handled by vite-plugin-pwa automatically)
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/FFAM_Competitions/sw.js').catch(() => {
-        // Service worker registration failed, app still works
-      });
-    });
-  }
+  // Service worker: offline support and update banner
+  initAppUpdate();
 }
 
 async function handleRouteChange(route: Route): Promise<void> {
@@ -77,6 +72,8 @@ async function handleRouteChange(route: Route): Promise<void> {
     default:
       await renderHomePage(appContainer);
   }
+
+  renderUpdateBanner();
 }
 
 // Initialize when DOM is ready

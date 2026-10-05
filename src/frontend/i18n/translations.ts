@@ -5,6 +5,9 @@ export interface Translations {
   appTitle: string;
   welcome: string;
   selectCompetition: string;
+  appVersion: string;
+  updateAvailable: string;
+  updateNow: string;
   competition91min: string;
   competition91minDesc: string;
   competition3h: string;
@@ -154,6 +157,9 @@ export const translations: Record<Language, Translations> = {
     appTitle: 'FFAM Competitions',
     welcome: 'Welcome to FFAM Competitions',
     selectCompetition: 'Select a competition',
+    appVersion: 'Version {version}',
+    updateAvailable: 'A new version is available',
+    updateNow: 'Update',
     competition91min: '91 Minutes of Essonne',
     competition91minDesc: '2-6 pilots • 4 min flights',
     competition3h: '3 Hours of Essonne',
@@ -302,6 +308,9 @@ export const translations: Record<Language, Translations> = {
     appTitle: 'Compétitions FFAM',
     welcome: 'Bienvenue aux Compétitions FFAM',
     selectCompetition: 'Sélectionnez une compétition',
+    appVersion: 'Version {version}',
+    updateAvailable: 'Une nouvelle version est disponible',
+    updateNow: 'Mettre à jour',
     competition91min: 'Les 91 Minutes de l\'Essonne',
     competition91minDesc: '2-6 pilotes • 4 min de vol',
     competition3h: 'Les 3 Heures de l\'Essonne',

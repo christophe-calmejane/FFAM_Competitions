@@ -3,6 +3,7 @@ import { t, getLanguage, setLanguage } from '../i18n/translations';
 import { getTheme, setTheme } from '../theme/theme';
 import { navigate } from '../router/router';
 import { createButton } from '../components/Button';
+import { renderUpdateBanner } from '../components/UpdateBanner';
 import { getAppSettings, saveAppSettings } from '../../backend/database/db';
 import type { Language, Theme } from '../../backend/types/index.js';
 
@@ -139,6 +140,12 @@ export async function renderHomePage(container: HTMLElement): Promise<void> {
   competitionSection.appendChild(card3h);
 
   page.appendChild(competitionSection);
+
+  page.appendChild(createElement('p', {
+    className: 'app-version',
+    textContent: t('appVersion', { version: __APP_VERSION__ }),
+  }));
+
   container.appendChild(page);
 }
 
@@ -184,6 +191,7 @@ function createCompetitionCard(
 
 async function updateLanguage(lang: Language): Promise<void> {
   setLanguage(lang);
+  renderUpdateBanner();
   const settings = await getAppSettings();
   settings.language = lang;
   await saveAppSettings(settings);
